@@ -1,0 +1,116 @@
+{
+  "name": "FoodBridge · WhatsApp",
+  "nodes": [
+    {
+      "parameters": { "httpMethod": "GET", "path": "foodbridge-whatsapp", "responseMode": "responseNode", "options": {} },
+      "name": "Meta verification",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2,
+      "position": [0, 0],
+      "webhookId": "foodbridge-whatsapp-verify"
+    },
+    {
+      "parameters": {
+        "respondWith": "text",
+        "responseBody": "={{ $json.query['hub.verify_token'] === $env.WHATSAPP_VERIFY_TOKEN ? $json.query['hub.challenge'] : 'forbidden' }}",
+        "options": {}
+      },
+      "name": "Answer challenge",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.1,
+      "position": [240, 0]
+    },
+    {
+      "parameters": { "httpMethod": "POST", "path": "foodbridge-whatsapp", "responseMode": "onReceived", "options": {} },
+      "name": "Incoming WhatsApp",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2,
+      "position": [0, 220],
+      "webhookId": "foodbridge-whatsapp-in"
+    },
+    {
+      "parameters": {
+        "jsCode": "// Keep only text messages (Meta also posts delivery/read statuses here).\nconst out = [];\nfor (const item of $input.all()) {\n  for (const entry of item.json.body?.entry ?? []) {\n    for (const change of entry.changes ?? []) {\n      for (const m of change.value?.messages ?? []) {\n        if (m.type === 'text' && m.text?.body) out.push({ json: { from: m.from, text: m.text.body, messageId: m.id } });\n      }\n    }\n  }\n}\nreturn out;"
+      },
+      "name": "Extract text",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [240, 220]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "={{ $env.FOODBRIDGE_URL }}/api/integrations/inbound",
+        "sendHeaders": true,
+        "headerParameters": { "parameters": [{ "name": "Authorization", "value": "=Bearer {{ $env.FOODBRIDGE_SECRET }}" }] },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify({ channel: 'whatsapp', from: $json.from, text: $json.text, messageId: $json.messageId }) }}",
+        "options": {}
+      },
+      "name": "Ask FoodBridge",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [480, 220]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "=https://graph.facebook.com/v21.0/{{ $env.WHATSAPP_PHONE_ID }}/messages",
+        "sendHeaders": true,
+        "headerParameters": { "parameters": [{ "name": "Authorization", "value": "=Bearer {{ $env.WHATSAPP_TOKEN }}" }] },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify({ messaging_product: 'whatsapp', to: $('Extract text').item.json.from, type: 'text', text: { body: $json.reply } }) }}",
+        "options": {}
+      },
+      "name": "Reply on WhatsApp",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [720, 220]
+    },
+    {
+      "parameters": { "httpMethod": "POST", "path": "foodbridge-updates", "responseMode": "onReceived", "options": {} },
+      "name": "FoodBridge updates",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2,
+      "position": [0, 440],
+      "webhookId": "foodbridge-updates"
+    },
+    {
+      "parameters": {
+        "jsCode": "// Only FoodBridge may send updates: check the bearer token, keep WhatsApp messages with an address.\nconst token = $env.FOODBRIDGE_WEBHOOK_TOKEN;\nreturn $input.all().filter((item) => {\n  const auth = item.json.headers?.authorization ?? '';\n  const body = item.json.body ?? {};\n  return (!token || auth === `Bearer ${token}`) && body.channel === 'whatsapp' && body.to;\n}).map((item) => ({ json: { to: item.json.body.to, text: item.json.body.text } }));"
+      },
+      "name": "Check sender",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [240, 440]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "=https://graph.facebook.com/v21.0/{{ $env.WHATSAPP_PHONE_ID }}/messages",
+        "sendHeaders": true,
+        "headerParameters": { "parameters": [{ "name": "Authorization", "value": "=Bearer {{ $env.WHATSAPP_TOKEN }}" }] },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify({ messaging_product: 'whatsapp', to: $json.to, type: 'text', text: { body: $json.text } }) }}",
+        "options": {}
+      },
+      "name": "Send WhatsApp update",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [480, 440],
+      "notes": "Outside WhatsApp's 24-hour window, switch this to an approved template message (see README)."
+    }
+  ],
+  "connections": {
+    "Meta verification": { "main": [[{ "node": "Answer challenge", "type": "main", "index": 0 }]] },
+    "Incoming WhatsApp": { "main": [[{ "node": "Extract text", "type": "main", "index": 0 }]] },
+    "Extract text": { "main": [[{ "node": "Ask FoodBridge", "type": "main", "index": 0 }]] },
+    "Ask FoodBridge": { "main": [[{ "node": "Reply on WhatsApp", "type": "main", "index": 0 }]] },
+    "FoodBridge updates": { "main": [[{ "node": "Check sender", "type": "main", "index": 0 }]] },
+    "Check sender": { "main": [[{ "node": "Send WhatsApp update", "type": "main", "index": 0 }]] }
+  },
+  "settings": { "executionOrder": "v1" }
+}

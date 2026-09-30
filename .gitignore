@@ -39,3 +39,11 @@ yarn-error.log*
 # typescript
 *.tsbuildinfo
 next-env.d.ts
+
+# local database
+/.data
+!.env.example
+/.playwright-mcp
+
+# graphify knowledge graph (local tool output)
+/graphify-out
