@@ -33,7 +33,7 @@ const SECURITY_HEADERS = [
 
 const nextConfig: NextConfig = {
   // PGlite ships a WASM Postgres build; load it from node_modules instead of bundling it.
-  serverExternalPackages: ["@electric-sql/pglite"],
+  serverExternalPackages: ["@electric-sql/pglite", "pg"],
   poweredByHeader: false,
   experimental: {
     serverActions: {

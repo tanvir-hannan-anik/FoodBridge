@@ -142,7 +142,7 @@ Work has been delivered in numbered segments; the DDL comments in `src/db/index.
 - Admin lists show the latest 100 rows (no pagination yet). Admins are seeded; there's no UI to create another admin.
 - Proof photos are visible only to the volunteer (not yet shown to donors or NGOs).
 - Rate limits are in-memory per process (move to a shared store with several servers). Photos are stored in Postgres; move them to object storage as volume grows.
-- For production, swap PGlite for hosted Postgres in `src/db/index.ts` (the schema is plain Postgres).
+- Production (Vercel) needs a hosted Postgres: with `DATABASE_URL` (or `POSTGRES_URL`) set, `src/db/index.ts` uses node-postgres and runs the DDL in one transaction under `pg_advisory_xact_lock`; without it, PGlite. On Vercel without a URL it fails with a clear message (the filesystem is read-only).
 
 ## Knowledge graph
 

@@ -4,17 +4,29 @@ import { mkdirSync, readFileSync, statSync, unlinkSync, writeFileSync } from "no
 import os from "node:os";
 import path from "node:path";
 import { PGlite } from "@electric-sql/pglite";
+import { drizzle as drizzlePostgres } from "drizzle-orm/node-postgres";
 import { drizzle, type PgliteDatabase } from "drizzle-orm/pglite";
 import bcrypt from "bcryptjs";
+import pg from "pg";
 import * as schema from "./schema";
 
 /*
- * Local development uses PGlite (Postgres compiled to WASM, stored on disk), so the app
- * runs with zero setup. The schema is plain Postgres: to move to a hosted Postgres,
- * swap this file for `drizzle-orm/node-postgres` (or neon) and run the same DDL.
+ * Two ways to run the same plain-Postgres schema:
+ * - DATABASE_URL set (production, e.g. Neon on Vercel): a hosted Postgres through node-postgres.
+ *   Serverless hosts have a read-only, short-lived filesystem, so an embedded database can't work there.
+ * - Otherwise (local development): PGlite, Postgres compiled to WASM and stored in DATABASE_DIR,
+ *   so the app runs with zero setup.
+ * The DDL below is idempotent and runs on every start in both cases.
  */
 
-type DB = PgliteDatabase<typeof schema> & { $client: PGlite };
+/** Typed as the PGlite flavour; the node-postgres database has the same query-builder API. */
+type DB = PgliteDatabase<typeof schema>;
+
+/** The two calls migrations need, satisfied by both a PGlite client and a node-postgres client. */
+type SqlClient = {
+  query<T>(sql: string, params?: unknown[]): Promise<{ rows: T[] }>;
+  exec(sql: string): Promise<unknown>;
+};
 
 const DDL = /* sql */ `
 CREATE TABLE IF NOT EXISTS users (
@@ -315,7 +327,7 @@ CREATE INDEX IF NOT EXISTS activity_log_action_idx ON activity_log (action, crea
 `;
 
 /** Accounts that cannot self-register (admin) plus ready-made demo partners (DEMO_MODE only). */
-async function seed(client: PGlite) {
+async function seed(client: SqlClient) {
   const { rows } = await client.query<{ n: number }>("SELECT count(*)::int AS n FROM users WHERE role <> 'donor'");
   if (rows[0].n > 0) return;
 
@@ -344,7 +356,7 @@ async function seed(client: PGlite) {
 }
 
 /** Idempotent: safe to run on every start and again whenever the DDL changes. */
-async function migrate(client: PGlite) {
+async function migrate(client: SqlClient) {
   await client.exec(DDL);
   await seed(client);
   if (process.env.DEMO_MODE === "true") {
@@ -414,41 +426,95 @@ function isAlive(pid: number) {
   }
 }
 
-async function open(): Promise<DB> {
+type Opened = { db: DB; migrate: () => Promise<void> };
+
+function openPglite(): Opened {
   const dir = path.resolve(/*turbopackIgnore: true*/ process.env.DATABASE_DIR ?? "./.data/pglite");
   mkdirSync(path.dirname(dir), { recursive: true });
   acquireLock(dir);
   const client = new PGlite(dir);
-  await migrate(client);
-  return drizzle({ client, schema });
+  return { db: drizzle({ client, schema }), migrate: () => migrate(client) };
 }
 
-// One embedded database per process (survives dev hot reloads). We remember which DDL was
-// applied so that editing the schema during `next dev` re-runs the migration on the live connection.
-type Cached = { db: Promise<DB>; ddl: string };
-const globalForDb = globalThis as unknown as { __foodbridgeDb?: Cached | Promise<DB> };
+// Counts and sums come back as bigint/numeric; parse them as numbers, as PGlite does.
+pg.types.setTypeParser(pg.types.builtins.INT8, Number);
+pg.types.setTypeParser(pg.types.builtins.NUMERIC, Number);
 
-export function getDb(): Promise<DB> {
+/** Any id works, as long as every server uses the same one. */
+const MIGRATION_LOCK = 727_19_20;
+
+function openPostgres(url: string): Opened {
+  // Serverless: few connections per instance; use the provider's pooled connection string.
+  const pool = new pg.Pool({ connectionString: url, max: 5, idleTimeoutMillis: 10_000 });
+  return {
+    db: drizzlePostgres({ client: pool, schema }) as unknown as DB,
+    // Several instances can cold-start at once. One transaction with a transaction-scoped
+    // advisory lock runs the DDL one at a time, all or nothing, and works behind any pooler.
+    migrate: async () => {
+      const conn = await pool.connect();
+      try {
+        await conn.query("BEGIN");
+        await conn.query("SELECT pg_advisory_xact_lock($1)", [MIGRATION_LOCK]);
+        const client: SqlClient = {
+          query: async <T>(sql: string, params?: unknown[]) => ({ rows: (await conn.query(sql, params)).rows as T[] }),
+          exec: (sql) => conn.query(sql),
+        };
+        await migrate(client);
+        await conn.query("COMMIT");
+      } catch (error) {
+        await conn.query("ROLLBACK").catch(() => {});
+        throw error;
+      } finally {
+        conn.release();
+      }
+    },
+  };
+}
+
+async function open(): Promise<Opened> {
+  // Neon sets DATABASE_URL; some other Vercel database integrations set POSTGRES_URL.
+  const url = process.env.DATABASE_URL || process.env.POSTGRES_URL;
+  if (!url && process.env.VERCEL) {
+    throw new Error("DATABASE_URL is not set. Connect a Postgres database (e.g. Neon) to this Vercel project.");
+  }
+  const opened = url ? openPostgres(url) : openPglite();
+  await opened.migrate();
+  return opened;
+}
+
+// One database connection per process (survives dev hot reloads). We remember which DDL was
+// applied so that editing the schema during `next dev` re-runs the migration on the live connection.
+type Cached = { opened: Promise<Opened>; ddl: string };
+const globalForDb = globalThis as unknown as { __foodbridgeDb?: Cached };
+
+export async function getDb(): Promise<DB> {
   let cached = globalForDb.__foodbridgeDb;
-  // Instances cached by older code (a bare promise) are upgraded rather than reopened.
-  if (cached instanceof Promise) cached = globalForDb.__foodbridgeDb = { db: cached, ddl: "" };
+  // A dev server started on older code cached `{ db }` (a PGlite database). Reuse it:
+  // opening the same folder twice in one process would corrupt it.
+  if (cached && !("opened" in cached)) {
+    const legacy = cached as unknown as { db: Promise<DB & { $client: PGlite }>; ddl?: string };
+    cached = globalForDb.__foodbridgeDb = {
+      ddl: legacy.ddl ?? "",
+      opened: legacy.db.then((db) => ({ db, migrate: () => migrate(db.$client) })),
+    };
+  }
 
   if (!cached) {
-    const db = open().catch((error) => {
+    const opened = open().catch((error) => {
       globalForDb.__foodbridgeDb = undefined;
       throw error;
     });
-    globalForDb.__foodbridgeDb = { db, ddl: DDL };
-    return db;
+    globalForDb.__foodbridgeDb = { opened, ddl: DDL };
+    return (await opened).db;
   }
   if (cached.ddl !== DDL) {
     cached.ddl = DDL;
-    cached.db = cached.db.then(async (db) => {
-      await migrate(db.$client);
-      return db;
+    cached.opened = cached.opened.then(async (o) => {
+      await o.migrate();
+      return o;
     });
   }
-  return cached.db;
+  return (await cached.opened).db;
 }
 
 export { schema };

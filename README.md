@@ -162,7 +162,8 @@ Settings are read from environment variables. Copy [.env.example](.env.example) 
 | Variable | Required | Description |
 | --- | --- | --- |
 | `SESSION_SECRET` | ✅ | Signs session cookies. 32+ random characters. |
-| `DATABASE_DIR` | | PGlite folder (default `./.data/pglite`). |
+| `DATABASE_URL` | Production | Hosted Postgres connection string (pooled). When set, it's used instead of PGlite. `POSTGRES_URL` also works. |
+| `DATABASE_DIR` | | PGlite folder for local development (default `./.data/pglite`). |
 | `APP_TIMEZONE` | | Timezone for displayed dates (default `Asia/Dhaka`). |
 | `DEMO_MODE` | | `true` seeds demo partners and shows demo shortcuts. |
 | `ADMIN_EMAIL` / `ADMIN_PASSWORD` | Production | First admin account. A production start refuses to create an admin with the default password. |
@@ -222,11 +223,16 @@ Contributor notes on architecture rules and invariants are in [CLAUDE.md](CLAUDE
 
 ## Deployment
 
-1. Replace PGlite with a hosted PostgreSQL database in `src/db/index.ts`. The schema is plain Postgres.
-2. Set `SESSION_SECRET`, `ADMIN_EMAIL`, `ADMIN_PASSWORD` and `CRON_SECRET` in the host's environment.
-3. Schedule `GET /api/cron/housekeeping` every few minutes with `Authorization: Bearer $CRON_SECRET`.
-4. Set `NEXT_PUBLIC_MAP_TILE_URL` to a tile provider suitable for production traffic.
-5. Run `npm run build`, then `npm run start`.
+FoodBridge deploys to **Vercel** (or any Node.js host) with a hosted PostgreSQL database. The embedded PGlite database is for local development only: serverless hosts have a read-only, short-lived filesystem.
+
+1. **Add a database.** In the Vercel project, open **Storage → Create Database → Neon (Postgres)** and connect it to the project. This sets `DATABASE_URL` automatically. Any Postgres works; set `DATABASE_URL` yourself for other providers.
+2. **Set environment variables** (Project → Settings → Environment Variables):
+   - `SESSION_SECRET`: 32+ random characters
+   - `ADMIN_EMAIL` and `ADMIN_PASSWORD`: the first admin account (or `DEMO_MODE=true` to seed the demo accounts)
+   - `CRON_SECRET`: 16+ random characters
+3. **Redeploy.** Tables are created automatically on the first request, and the same idempotent schema update runs safely on every start.
+4. **Keep food moving.** Schedule `GET /api/cron/housekeeping` with `Authorization: Bearer $CRON_SECRET` (a Vercel Cron Job sends this header automatically when `CRON_SECRET` is set).
+5. Optionally set `NEXT_PUBLIC_MAP_TILE_URL` to a tile provider suitable for production traffic.
 
 ## Known limitations
 
