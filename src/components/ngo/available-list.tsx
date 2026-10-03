@@ -4,10 +4,11 @@ import { SafetyBadge } from "@/components/safety-badge";
 import { Badge } from "@/components/ui";
 import { UNIT_SHORT } from "@/lib/donations/meta";
 import type { AvailableDonation } from "@/lib/ngo/service";
-import { formatDateTime } from "@/lib/utils";
+import { getI18n } from "@/lib/i18n-server";
 
 /** Card grid of donations open for requests. */
-export function AvailableList({ items }: { items: AvailableDonation[] }) {
+export async function AvailableList({ items }: { items: AvailableDonation[] }) {
+  const { t, dateTime, number } = await getI18n();
   return (
     <ul className="grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
       {items.map((d) => {
@@ -28,14 +29,14 @@ export function AvailableList({ items }: { items: AvailableDonation[] }) {
 
               <dl className="mt-4 grid grid-cols-2 gap-3 rounded-2xl bg-cream-50 p-3 text-sm">
                 <div>
-                  <dt className="text-xs text-ink-500">Quantity</dt>
+                  <dt className="text-xs text-ink-500">{t("Quantity")}</dt>
                   <dd className="font-semibold text-brand-950">
-                    {d.quantity} {UNIT_SHORT[d.unit]}
-                    <span className="font-normal text-ink-500"> · ~{d.mealsEstimate} meals</span>
+                    {number(d.quantity)} {t(UNIT_SHORT[d.unit])}
+                    <span className="font-normal text-ink-500"> · {t("~{n} meals", { n: d.mealsEstimate })}</span>
                   </dd>
                 </div>
                 <div>
-                  <dt className="text-xs text-ink-500">Expires</dt>
+                  <dt className="text-xs text-ink-500">{t("Expires")}</dt>
                   <dd className="mt-0.5">
                     <SafetyBadge expiresAt={d.expiresAt} />
                   </dd>
@@ -56,7 +57,7 @@ export function AvailableList({ items }: { items: AvailableDonation[] }) {
                 </svg>
                 <span className="line-clamp-2">{d.pickupAddress}</span>
               </p>
-              <p className="mt-auto pt-4 text-xs text-ink-500">Ready from {formatDateTime(d.pickupAt)}</p>
+              <p className="mt-auto pt-4 text-xs text-ink-500">{t("Ready from {time}", { time: dateTime(d.pickupAt) })}</p>
             </Link>
           </li>
         );

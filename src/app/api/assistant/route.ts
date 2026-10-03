@@ -3,6 +3,7 @@ import { getCurrentUser } from "@/lib/auth/dal";
 import { runAssistant } from "@/lib/ai/graph";
 import { deleteConversations, latestConversationId, listConversations, loadConversation, renameConversation, saveTurn, toTurns } from "@/lib/ai/history";
 import { aiEnabled, AiUnavailableError } from "@/lib/ai/provider";
+import { getLang } from "@/lib/i18n-server";
 import { rateLimited } from "@/lib/rate-limit";
 
 /*
@@ -48,7 +49,7 @@ export async function POST(request: Request) {
   try {
     const { message, conversationId } = parsed.data;
     const history = conversationId ? ((await loadConversation(user.id, conversationId, 16)) ?? []) : [];
-    const reply = await runAssistant(user, message, toTurns(history));
+    const reply = await runAssistant(user, message, toTurns(history), await getLang());
     const conversation = await saveTurn(user.id, conversationId ?? null, message, reply);
     return Response.json({ ...reply, conversation }, { headers: NO_STORE });
   } catch (error) {

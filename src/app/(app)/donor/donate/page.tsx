@@ -4,8 +4,12 @@ import { DonationForm } from "@/components/donor/donation-form";
 import { PageHeader } from "@/components/layout/page-header";
 import { decodeDraft, donationDraftSchema } from "@/lib/ai/schemas";
 import { requireRole } from "@/lib/auth/dal";
+import { getI18n } from "@/lib/i18n-server";
 
-export const metadata: Metadata = { title: "Donate food" };
+export async function generateMetadata(): Promise<Metadata> {
+  const { t } = await getI18n();
+  return { title: t("Donate food") };
+}
 
 const NEXT_STEPS = [
   { title: "NGOs nearby are notified", text: "Verified NGOs see your donation right away." },
@@ -16,10 +20,11 @@ const NEXT_STEPS = [
 
 export default async function DonatePage({ searchParams }: PageProps<"/donor/donate">) {
   const donor = await requireRole("donor");
+  const { t, number } = await getI18n();
   return (
     <>
       <Link href="/donor" className="text-sm font-medium text-ink-500 hover:text-brand-800">
-        ← Back to dashboard
+        ← {t("Back to dashboard")}
       </Link>
       <div className="mt-4">
         <PageHeader
@@ -42,16 +47,16 @@ export default async function DonatePage({ searchParams }: PageProps<"/donor/don
 
         <aside className="space-y-6 lg:sticky lg:top-24">
           <section className="grain relative overflow-hidden rounded-card bg-brand-950 p-6 text-cream-50">
-            <h2 className="font-display text-xl font-semibold">What happens next</h2>
+            <h2 className="font-display text-xl font-semibold">{t("What happens next")}</h2>
             <ol className="mt-5 space-y-5">
               {NEXT_STEPS.map((s, i) => (
                 <li key={s.title} className="flex gap-4">
                   <span className="grid size-7 shrink-0 place-items-center rounded-full bg-accent-400 text-xs font-bold text-brand-950">
-                    {i + 1}
+                    {number(i + 1)}
                   </span>
                   <div>
-                    <p className="text-sm font-semibold">{s.title}</p>
-                    <p className="mt-0.5 text-xs leading-relaxed text-brand-200">{s.text}</p>
+                    <p className="text-sm font-semibold">{t(s.title)}</p>
+                    <p className="mt-0.5 text-xs leading-relaxed text-brand-200">{t(s.text)}</p>
                   </div>
                 </li>
               ))}
@@ -59,12 +64,12 @@ export default async function DonatePage({ searchParams }: PageProps<"/donor/don
           </section>
 
           <section className="rounded-card border border-accent-100 bg-accent-50 p-6">
-            <h2 className="font-display text-lg font-semibold text-brand-950">Tips for a quick match</h2>
+            <h2 className="font-display text-lg font-semibold text-brand-950">{t("Tips for a quick match")}</h2>
             <ul className="mt-3 list-disc space-y-2 pl-5 text-sm text-ink-700 marker:text-accent-500">
-              <li>Be specific: “Chicken biryani”, not just “food”.</li>
-              <li>Give a realistic best-before time.</li>
-              <li>A photo helps NGOs decide faster.</li>
-              <li>Keep your phone nearby for the pickup call.</li>
+              <li>{t("Be specific: “Chicken biryani”, not just “food”.")}</li>
+              <li>{t("Give a realistic best-before time.")}</li>
+              <li>{t("A photo helps NGOs decide faster.")}</li>
+              <li>{t("Keep your phone nearby for the pickup call.")}</li>
             </ul>
           </section>
         </aside>

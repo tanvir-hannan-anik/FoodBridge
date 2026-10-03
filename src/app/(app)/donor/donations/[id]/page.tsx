@@ -23,10 +23,15 @@ import {
 import { DEMO_STEPS, getDonorDonation, sweepDonorDonations } from "@/lib/donations/service";
 import { distanceKm, formatDistance, toPoint } from "@/lib/geo";
 import { getDeliveryView } from "@/lib/location/service";
+import { getI18n } from "@/lib/i18n-server";
+import { rich } from "@/lib/i18n-rich";
 import { NGO_TYPE_LABEL } from "@/lib/ngo/meta";
-import { cn, formatDateTime, formatRelative } from "@/lib/utils";
+import { cn } from "@/lib/utils";
 
-export const metadata: Metadata = { title: "Donation details" };
+export async function generateMetadata(): Promise<Metadata> {
+  const { t } = await getI18n();
+  return { title: t("Donation details") };
+}
 
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
@@ -58,31 +63,32 @@ export default async function DonationDetailsPage({ params, searchParams }: Page
   const nextStep = process.env.DEMO_MODE === "true" ? DEMO_STEPS[d.status] : undefined;
   const view = d.ngo ? await getDeliveryView(donor, d.id) : null;
   const pickupPoint = toPoint(d.pickupLat, d.pickupLng);
+  const { t, dateTime, relative, number } = await getI18n();
 
   return (
     <>
       <Link href="/donor/donations" className="text-sm font-medium text-ink-500 hover:text-brand-800">
-        ← My donations
+        ← {t("My donations")}
       </Link>
 
       {created && (
-        <Alert tone="success" title="Donation posted!" className="mt-4">
-          We’re notifying NGOs nearby. You’ll get a notification as soon as one accepts.
+        <Alert tone="success" title={t("Donation posted!")} className="mt-4">
+          {t("We’re notifying NGOs nearby. You’ll get a notification as soon as one accepts.")}
         </Alert>
       )}
 
       {d.safetyFlag === "FLAGGED" && (
-        <Alert tone="warning" title="Paused for a food-safety check" className="mt-4">
-          NGOs can’t see or accept this food until FoodBridge finishes the check.{d.safetyNote && <> Note: {d.safetyNote}</>} If the food isn’t
-          safe any more, please cancel it.
+        <Alert tone="warning" title={t("Paused for a food-safety check")} className="mt-4">
+          {t("NGOs can’t see or accept this food until FoodBridge finishes the check.")}
+          {d.safetyNote && <> {t("Note: {note}", { note: d.safetyNote })}</>} {t("If the food isn’t safe any more, please cancel it.")}
         </Alert>
       )}
 
       {d.parentId && (
         <Alert tone="info" className="mt-4">
-          This is the remaining part of a larger donation: some of it was already allocated to an NGO.{" "}
+          {t("This is the remaining part of a larger donation: some of it was already allocated to an NGO.")}{" "}
           <Link href={`/donor/donations/${d.parentId}`} className="font-semibold underline">
-            See the allocated part
+            {t("See the allocated part")}
           </Link>
         </Alert>
       )}
@@ -102,10 +108,10 @@ export default async function DonationDetailsPage({ params, searchParams }: Page
                 </div>
                 <p className="mt-2 flex flex-wrap gap-x-4 gap-y-1 text-sm text-brand-200">
                   <span>
-                    {d.quantity} {UNIT_SHORT[d.unit]}
+                    {number(d.quantity)} {t(UNIT_SHORT[d.unit])}
                   </span>
-                  <span>~{d.mealsEstimate} meals</span>
-                  <span>Posted {formatDateTime(d.createdAt)}</span>
+                  <span>{t("~{n} meals", { n: d.mealsEstimate })}</span>
+                  <span>{t("Posted {time}", { time: dateTime(d.createdAt) })}</span>
                 </p>
               </div>
             </div>
@@ -125,7 +131,7 @@ export default async function DonationDetailsPage({ params, searchParams }: Page
                     placeholder="e.g. Food was already given away"
                   />
                   <SubmitButton variant="danger" block pendingLabel="Cancelling…">
-                    Yes, cancel donation
+                    {t("Yes, cancel donation")}
                   </SubmitButton>
                 </form>
               </Modal>
@@ -133,7 +139,7 @@ export default async function DonationDetailsPage({ params, searchParams }: Page
           </div>
 
           {/* Progress */}
-          <ol aria-label="Donation progress" className="mt-8 grid grid-cols-7 gap-1.5 sm:gap-2">
+          <ol aria-label={t("Donation progress")} className="mt-8 grid grid-cols-7 gap-1.5 sm:gap-2">
             {FLOW.map((step, i) => {
               const done = i <= reachedIndex;
               const current = !closed && i === stepIndex;
@@ -151,22 +157,26 @@ export default async function DonationDetailsPage({ params, searchParams }: Page
                       current ? "font-semibold text-accent-300" : done ? "text-cream-100" : "text-brand-300/70",
                     )}
                   >
-                    {SHORT_LABEL[step]}
+                    {t(SHORT_LABEL[step])}
                   </span>
-                  <span className="sr-only">{done ? " (done)" : " (not yet)"}</span>
+                  <span className="sr-only">{done ? ` ${t("(done)")}` : ` ${t("(not yet)")}`}</span>
                 </li>
               );
             })}
           </ol>
           <p className="mt-4 text-sm text-cream-100 sm:hidden">
-            Step {Math.min(reachedIndex + 1, FLOW.length)} of {FLOW.length}: {STATUS_META[d.status].label}
+            {t("Step {n} of {total}: {label}", {
+              n: Math.min(reachedIndex + 1, FLOW.length),
+              total: FLOW.length,
+              label: t(STATUS_META[d.status].label),
+            })}
           </p>
         </div>
       </section>
 
       {d.status === "CANCELLED" && d.cancelReason && (
         <Alert tone="info" className="mt-6">
-          Cancelled: {d.cancelReason}
+          {t("Cancelled: {reason}", { reason: d.cancelReason })}
         </Alert>
       )}
 
@@ -199,20 +209,24 @@ export default async function DonationDetailsPage({ params, searchParams }: Page
                           <p className="font-semibold text-brand-950">
                             {ngoName}
                             <span className="ml-2 rounded-full bg-brand-50 px-2 py-0.5 text-[11px] font-semibold text-brand-800">
-                              ✓ Verified
+                              ✓ {t("Verified")}
                             </span>
                           </p>
                           <p className="mt-0.5 text-sm text-ink-500">
-                            {r.ngoType ? NGO_TYPE_LABEL[r.ngoType] : "NGO"}
+                            {t(r.ngoType ? NGO_TYPE_LABEL[r.ngoType] : "NGO")}
                             {r.ngoArea && <> · {r.ngoArea}</>}
-                            {away && <> · {away} away</>}
+                            {away && <> · {t("{d} away", { d: t(away) })}</>}
                           </p>
                           <p className="mt-2 text-sm text-ink-700">
-                            Wants{" "}
-                            <strong>
-                              {r.quantity} {UNIT_SHORT[d.unit]}
-                            </strong>{" "}
-                            to feed <strong>{r.people} people</strong>, pickup around {formatDateTime(r.preferredAt)}.
+                            {rich(t("Wants {qty} to feed {people}, pickup around {time}."), {
+                              qty: (
+                                <strong>
+                                  {number(r.quantity)} {t(UNIT_SHORT[d.unit])}
+                                </strong>
+                              ),
+                              people: <strong>{t("{n} people", { n: r.people })}</strong>,
+                              time: dateTime(r.preferredAt),
+                            })}
                           </p>
                           {r.notes && (
                             <p className="mt-2 rounded-xl bg-cream-100 px-3 py-2 text-sm text-ink-700">“{r.notes}”</p>
@@ -221,12 +235,12 @@ export default async function DonationDetailsPage({ params, searchParams }: Page
                         <div className="flex shrink-0 gap-2">
                           <form action={declineFoodRequest.bind(null, r.id)}>
                             <SubmitButton variant="outline" size="sm" className="rounded-full px-4">
-                              Decline
+                              {t("Decline")}
                             </SubmitButton>
                           </form>
                           <form action={acceptFoodRequest.bind(null, r.id)}>
                             <SubmitButton size="sm" className="rounded-full px-4" pendingLabel="Accepting…">
-                              Accept
+                              {t("Accept")}
                             </SubmitButton>
                           </form>
                         </div>
@@ -235,14 +249,14 @@ export default async function DonationDetailsPage({ params, searchParams }: Page
                   })}
                 </ul>
               ) : (
-                <p className="px-6 py-6 text-sm text-ink-500">No requests yet. We’ll notify you when an NGO asks for it.</p>
+                <p className="px-6 py-6 text-sm text-ink-500">{t("No requests yet. We’ll notify you when an NGO asks for it.")}</p>
               )}
             </Card>
           )}
 
           {view && (
             <Card>
-              <CardHeader title="Delivery" description={deliveryHeadline(d.status, view.pendingOffer, d.volunteer?.name)} />
+              <CardHeader title="Delivery" description={t(deliveryHeadline(d.status, view.pendingOffer, d.volunteer?.name))} />
               <CardBody className="space-y-5">
                 {!closed && <DeliveryProgress status={d.status} pendingOffer={view.pendingOffer} />}
                 <DeliveryMap initial={view} />
@@ -261,20 +275,20 @@ export default async function DonationDetailsPage({ params, searchParams }: Page
             <CardHeader title="Food details" />
             <CardBody>
               <dl className="grid gap-x-6 gap-y-5 sm:grid-cols-2">
-                <Detail label="Category">{CATEGORY_LABEL[d.category]}</Detail>
-                <Detail label="Quantity">
-                  {d.quantity} {UNIT_SHORT[d.unit]} · ~{d.mealsEstimate} meals
+                <Detail label={t("Category")}>{t(CATEGORY_LABEL[d.category])}</Detail>
+                <Detail label={t("Quantity")}>
+                  {number(d.quantity)} {t(UNIT_SHORT[d.unit])} · {t("~{n} meals", { n: d.mealsEstimate })}
                 </Detail>
-                <Detail label="Condition">{CONDITION_LABEL[d.condition].split(" — ")[0]}</Detail>
-                <Detail label="Prepared at">{formatDateTime(d.preparedAt)}</Detail>
-                <Detail label="Best before">
-                  {formatDateTime(d.expiresAt)}
+                <Detail label={t("Condition")}>{t(CONDITION_LABEL[d.condition]).split(" — ")[0]}</Detail>
+                <Detail label={t("Prepared at")}>{dateTime(d.preparedAt)}</Detail>
+                <Detail label={t("Best before")}>
+                  {dateTime(d.expiresAt)}
                   {ACTIVE_STATUSES.slice(0, 3).includes(d.status) && (
-                    <span className="ml-1 text-ink-500">({formatRelative(d.expiresAt)})</span>
+                    <span className="ml-1 text-ink-500">({relative(d.expiresAt)})</span>
                   )}
                 </Detail>
                 {d.instructions && (
-                  <Detail label="Special instructions" wide>
+                  <Detail label={t("Special instructions")} wide>
                     <span className="block rounded-xl bg-cream-100 px-4 py-3">{d.instructions}</span>
                   </Detail>
                 )}
@@ -283,7 +297,7 @@ export default async function DonationDetailsPage({ params, searchParams }: Page
                 // eslint-disable-next-line @next/next/no-img-element -- private, auth-checked image route
                 <img
                   src={`/donor/donations/${d.id}/image`}
-                  alt={`Photo of ${d.foodType}`}
+                  alt={t("Photo of {food}", { food: d.foodType })}
                   loading="lazy"
                   className="mt-6 max-h-80 w-full rounded-2xl border border-cream-200 object-cover"
                 />
@@ -297,18 +311,22 @@ export default async function DonationDetailsPage({ params, searchParams }: Page
             <CardHeader title="Pickup" />
             <CardBody>
               <dl className="space-y-5">
-                <Detail label="Ready from">{formatDateTime(d.pickupAt)}</Detail>
-                <Detail label="Address">
+                <Detail label={t("Ready from")}>{dateTime(d.pickupAt)}</Detail>
+                <Detail label={t("Address")}>
                   {d.pickupAddress}
-                  {!pickupPoint && <span className="mt-1 block text-xs text-ink-500">No map pin: distances use your area.</span>}
+                  {!pickupPoint && (
+                    <span className="mt-1 block text-xs text-ink-500">{t("No map pin: distances use your area.")}</span>
+                  )}
                 </Detail>
                 {d.deliveryAddress && (
-                  <Detail label="Delivering to">
+                  <Detail label={t("Delivering to")}>
                     {d.deliveryAddress}
-                    {d.deliverBy && <span className="block text-ink-500">by {formatDateTime(d.deliverBy)}</span>}
+                    {d.deliverBy && (
+                      <span className="block text-ink-500">{t("by {time}", { time: dateTime(d.deliverBy) })}</span>
+                    )}
                   </Detail>
                 )}
-                <Detail label="Contact">
+                <Detail label={t("Contact")}>
                   {d.contactName}
                   <a
                     href={`tel:${d.contactPhone}`}
@@ -325,31 +343,29 @@ export default async function DonationDetailsPage({ params, searchParams }: Page
             <CardHeader title="Who’s helping" />
             <CardBody className="space-y-5">
               <Partner
-                label="NGO"
+                label={t("NGO")}
                 initials="N"
                 name={d.ngo?.name ?? d.ngo?.contact}
                 phone={d.ngo?.phone}
-                waiting="Waiting for an NGO to accept."
+                waiting={t("Waiting for an NGO to accept.")}
               />
               <Partner
-                label="Volunteer"
+                label={t("Volunteer")}
                 initials="V"
                 name={d.volunteer?.name}
                 phone={d.volunteer?.phone}
-                waiting={d.ngo ? deliveryHeadline(d.status, view?.pendingOffer ?? false) : "Assigned after an NGO accepts."}
+                waiting={t(d.ngo ? deliveryHeadline(d.status, view?.pendingOffer ?? false) : "Assigned after an NGO accepts.")}
               />
             </CardBody>
           </Card>
 
           {nextStep && (
             <section className="rounded-card border border-dashed border-accent-500/50 bg-accent-50 p-6">
-              <p className="text-xs font-semibold tracking-widest text-accent-700 uppercase">Demo mode</p>
-              <p className="mt-2 text-sm text-ink-700">
-                Skip the volunteer login: play the volunteer’s part to test the flow.
-              </p>
+              <p className="text-xs font-semibold tracking-widest text-accent-700 uppercase">{t("Demo mode")}</p>
+              <p className="mt-2 text-sm text-ink-700">{t("Skip the volunteer login: play the volunteer’s part to test the flow.")}</p>
               <form action={advanceDemo.bind(null, d.id)} className="mt-4">
                 <SubmitButton variant="primary" block pendingLabel="Updating…" className="rounded-full">
-                  Move to “{STATUS_META[nextStep].label}”
+                  {t("Move to “{label}”", { label: t(STATUS_META[nextStep].label) })}
                 </SubmitButton>
               </form>
             </section>

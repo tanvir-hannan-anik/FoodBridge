@@ -1,8 +1,12 @@
 import type { Metadata } from "next";
 import { AssistantFullScreen } from "@/components/assistant/assistant-fullscreen";
 import { requireUser } from "@/lib/auth/dal";
+import { getI18n } from "@/lib/i18n-server";
 
-export const metadata: Metadata = { title: "Assistant" };
+export async function generateMetadata(): Promise<Metadata> {
+  const { t } = await getI18n();
+  return { title: t("Assistant") };
+}
 
 /** Only same-site paths are accepted as the Back target (no open redirects). */
 function safeBack(from: string | string[] | undefined, fallback: string) {

@@ -16,11 +16,15 @@ import { requireRole } from "@/lib/auth/dal";
 import { CATEGORY_LABEL, CONDITION_LABEL, UNIT_SHORT } from "@/lib/donations/meta";
 import { directionsUrl, formatDistance, mapSearchUrl, toPoint, travelMinutes } from "@/lib/geo";
 import { getDeliveryView } from "@/lib/location/service";
-import { formatDateTime, formatRelative } from "@/lib/utils";
+import { getI18n } from "@/lib/i18n-server";
+import { rich } from "@/lib/i18n-rich";
 import { RELEASABLE, TASK_META, taskStage, type ProofStep } from "@/lib/volunteer/meta";
 import { getVolunteerTask, sweepVolunteerTasks, type VolunteerTask } from "@/lib/volunteer/service";
 
-export const metadata: Metadata = { title: "Task" };
+export async function generateMetadata(): Promise<Metadata> {
+  const { t } = await getI18n();
+  return { title: t("Task") };
+}
 
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
@@ -30,6 +34,7 @@ export default async function VolunteerTaskPage({ params, searchParams }: PagePr
   if (!UUID.test(id)) notFound();
 
   await sweepVolunteerTasks(volunteer.id);
+  const { t: tr, dateTime, relative, number } = await getI18n();
   const verified = volunteer.status === "active";
   const found = await getVolunteerTask(volunteer, id);
   // Unverified volunteers never see open tasks' addresses.
@@ -41,7 +46,7 @@ export default async function VolunteerTaskPage({ params, searchParams }: PagePr
           <EmptyState
             title="This task is no longer available"
             description="It may have gone to another volunteer, or the donation was cancelled or expired."
-            action={<ButtonLink href="/volunteer">Back to dashboard</ButtonLink>}
+            action={<ButtonLink href="/volunteer">{tr("Back to dashboard")}</ButtonLink>}
           />
         </Card>
       </div>
@@ -50,27 +55,29 @@ export default async function VolunteerTaskPage({ params, searchParams }: PagePr
 
   const stage = taskStage(t.status, t.offeredToMe);
   const view = t.mine ? await getDeliveryView(volunteer, t.id) : null;
-  const quantity = `${t.quantity} ${UNIT_SHORT[t.unit]} (~${t.mealsEstimate} meals)`;
+  const quantity = `${number(t.quantity)} ${tr(UNIT_SHORT[t.unit])} (${tr("~{n} meals", { n: t.mealsEstimate })})`;
 
   // Before accepting: a static preview of the route (no live sharing yet).
   const pickup = toPoint(t.pickupLat, t.pickupLng);
   const delivery = toPoint(t.deliveryLat, t.deliveryLng);
   const base = toPoint(volunteer.lat, volunteer.lng);
   const preview: MapMarker[] = [
-    ...(base ? [{ id: "me", point: base, kind: "volunteer" as const, glyph: "V", title: "You (saved location)" }] : []),
-    ...(pickup ? [{ id: "pickup", point: pickup, kind: "pickup" as const, glyph: "D", title: `Pickup: ${t.donorName}` }] : []),
-    ...(delivery ? [{ id: "delivery", point: delivery, kind: "delivery" as const, glyph: "N", title: `Delivery: ${t.ngoName ?? "NGO"}` }] : []),
+    ...(base ? [{ id: "me", point: base, kind: "volunteer" as const, glyph: "V", title: tr("You (saved location)") }] : []),
+    ...(pickup ? [{ id: "pickup", point: pickup, kind: "pickup" as const, glyph: "D", title: tr("Pickup: {name}", { name: t.donorName }) }] : []),
+    ...(delivery
+      ? [{ id: "delivery", point: delivery, kind: "delivery" as const, glyph: "N", title: tr("Delivery: {name}", { name: t.ngoName ?? tr("NGO") }) }]
+      : []),
   ];
 
   return (
     <div className="mx-auto max-w-3xl">
       <Link href={t.mine ? "/volunteer/tasks" : "/volunteer"} className="text-sm font-medium text-ink-500 hover:text-brand-800">
-        ← {t.mine ? "My tasks" : "Dashboard"}
+        ← {tr(t.mine ? "My tasks" : "Dashboard")}
       </Link>
 
       {accepted && stage === "accepted" && (
         <Alert tone="success" title="Task accepted!" className="mt-4">
-          The donor and NGO have been notified. Head to the pickup address at the pickup time.
+          {tr("The donor and NGO have been notified. Head to the pickup address at the pickup time.")}
         </Alert>
       )}
 
@@ -86,8 +93,8 @@ export default async function VolunteerTaskPage({ params, searchParams }: PagePr
               {["assigned", "open", "accepted"].includes(stage) && <SafetyBadge expiresAt={t.expiresAt} />}
             </div>
             <p className="mt-1 text-sm text-brand-200">
-              {quantity} · pickup {formatDateTime(t.pickupAt)}
-              {t.toPickupKm !== null && ` · ${formatDistance(t.toPickupKm)} from you`}
+              {quantity} · {tr("pickup {time}", { time: dateTime(t.pickupAt) })}
+              {t.toPickupKm !== null && ` · ${tr("{d} from you", { d: tr(formatDistance(t.toPickupKm) ?? "") })}`}
             </p>
           </div>
         </div>
@@ -102,8 +109,10 @@ export default async function VolunteerTaskPage({ params, searchParams }: PagePr
       <Card className="mt-5 border-brand-600/30">
         <CardBody className="space-y-4 p-5">
           <p className="text-sm text-ink-700">
-            <span className="font-semibold text-brand-950">{TASK_META[stage].label}.</span> {TASK_META[stage].next}
-            {stage === "closed" && t.cancelReason && <span className="block text-ink-500">Reason: {t.cancelReason}</span>}
+            <span className="font-semibold text-brand-950">{tr(TASK_META[stage].label)}.</span> {tr(TASK_META[stage].next)}
+            {stage === "closed" && t.cancelReason && (
+              <span className="block text-ink-500">{tr("Reason: {reason}", { reason: t.cancelReason })}</span>
+            )}
           </p>
 
           {(stage === "assigned" || stage === "open") &&
@@ -111,8 +120,10 @@ export default async function VolunteerTaskPage({ params, searchParams }: PagePr
               <>
                 {t.offerExpiresAt && (
                   <p className="rounded-xl bg-accent-50 px-4 py-3 text-sm text-accent-700">
-                    Please reply by <strong>{formatDateTime(t.offerExpiresAt)}</strong> ({formatRelative(t.offerExpiresAt)}). After that it goes to the
-                    next volunteer.
+                    {rich(tr("Please reply by {time} ({relative}). After that it goes to the next volunteer."), {
+                      time: <strong>{dateTime(t.offerExpiresAt)}</strong>,
+                      relative: relative(t.offerExpiresAt),
+                    })}
                   </p>
                 )}
                 <AcceptTaskForm donationId={t.id} />
@@ -121,7 +132,7 @@ export default async function VolunteerTaskPage({ params, searchParams }: PagePr
                     <form action={declineTaskAction.bind(null, t.id)} className="space-y-4">
                       <Textarea label="Reason" name="reason" optional rows={2} maxLength={200} placeholder="e.g. Too far from me right now" />
                       <SubmitButton variant="danger" block pendingLabel="Declining…">
-                        Decline task
+                        {tr("Decline task")}
                       </SubmitButton>
                     </form>
                   </Modal>
@@ -129,7 +140,7 @@ export default async function VolunteerTaskPage({ params, searchParams }: PagePr
               </>
             ) : (
               <Alert tone="warning">
-                {verified ? "Switch to Available on your dashboard to accept tasks." : "You can accept tasks once your account is verified."}
+                {tr(verified ? "Switch to Available on your dashboard to accept tasks." : "You can accept tasks once your account is verified.")}
               </Alert>
             ))}
 
@@ -146,7 +157,7 @@ export default async function VolunteerTaskPage({ params, searchParams }: PagePr
                   <form action={releaseTaskAction.bind(null, t.id)} className="space-y-4">
                     <Textarea label="Reason" name="reason" optional rows={2} maxLength={200} placeholder="e.g. Bike broke down" />
                     <SubmitButton variant="danger" block pendingLabel="Handing back…">
-                      Hand back task
+                      {tr("Hand back task")}
                     </SubmitButton>
                   </form>
                 </Modal>
@@ -158,11 +169,11 @@ export default async function VolunteerTaskPage({ params, searchParams }: PagePr
             <>
               <form action={startDeliveryAction.bind(null, t.id)}>
                 <SubmitButton block size="lg" pendingLabel="Starting…" className="h-14 rounded-full text-lg">
-                  Start delivery · I’m on my way
+                  {tr("Start delivery · I’m on my way")}
                 </SubmitButton>
               </form>
               <details className="rounded-2xl border border-cream-200 p-4">
-                <summary className="cursor-pointer text-sm font-semibold text-brand-900">Already at the NGO? Confirm delivery</summary>
+                <summary className="cursor-pointer text-sm font-semibold text-brand-900">{tr("Already at the NGO? Confirm delivery")}</summary>
                 <div className="mt-4">
                   <ProofForm action={confirmTaskDelivery.bind(null, t.id)} label="Confirm delivery" notePlaceholder="e.g. Handed over to the kitchen manager." />
                 </div>
@@ -207,15 +218,17 @@ export default async function VolunteerTaskPage({ params, searchParams }: PagePr
               <p className="text-sm text-ink-600">
                 {t.toPickupKm !== null && (
                   <>
-                    You → pickup: <strong>{formatDistance(t.toPickupKm)}</strong> (~{travelMinutes(t.toPickupKm)} min).{" "}
+                    {tr("You → pickup")}: <strong>{tr(formatDistance(t.toPickupKm) ?? "")}</strong> (
+                    {tr("~{n} min", { n: travelMinutes(t.toPickupKm) })}).{" "}
                   </>
                 )}
                 {t.deliveryKm !== null && (
                   <>
-                    Pickup → NGO: <strong>{formatDistance(t.deliveryKm)}</strong> (~{travelMinutes(t.deliveryKm)} min).
+                    {tr("Pickup → NGO")}: <strong>{tr(formatDistance(t.deliveryKm) ?? "")}</strong> (
+                    {tr("~{n} min", { n: travelMinutes(t.deliveryKm) })}).
                   </>
                 )}
-                {t.toPickupKm === null && t.deliveryKm === null && "Exact pins aren’t set yet; use the addresses below."}
+                {t.toPickupKm === null && t.deliveryKm === null && tr("Exact pins aren’t set yet; use the addresses below.")}
               </p>
               <a
                 href={directionsUrl({
@@ -226,7 +239,7 @@ export default async function VolunteerTaskPage({ params, searchParams }: PagePr
                 rel="noreferrer"
                 className="inline-flex h-11 items-center rounded-full border border-brand-900/15 px-4 text-sm font-semibold text-brand-900 hover:bg-cream-100"
               >
-                Preview route in Google Maps ↗
+                {tr("Preview route in Google Maps")} ↗
               </a>
             </div>
           )}
@@ -240,15 +253,15 @@ export default async function VolunteerTaskPage({ params, searchParams }: PagePr
           address={t.pickupAddress}
           mapHref={mapSearchUrl(pickup, t.pickupAddress)}
           contact={t.donorContact}
-          when={`Ready ${formatDateTime(t.pickupAt)}`}
+          when={tr("Ready {time}", { time: dateTime(t.pickupAt) })}
         />
         <Place
           title="Deliver to"
-          name={t.ngoName ?? "NGO"}
+          name={t.ngoName ?? tr("NGO")}
           address={t.ngoAddress ?? t.ngoArea}
           mapHref={mapSearchUrl(delivery, t.ngoAddress ?? t.ngoArea)}
           contact={t.ngoContactInfo}
-          when={t.deliverBy ? `By ${formatDateTime(t.deliverBy)}` : undefined}
+          when={t.deliverBy ? tr("by {time}", { time: dateTime(t.deliverBy) }) : undefined}
         />
       </div>
 
@@ -267,15 +280,15 @@ export default async function VolunteerTaskPage({ params, searchParams }: PagePr
         <CardHeader title="Food information" />
         <CardBody>
           <dl className="grid grid-cols-2 gap-x-6 gap-y-4">
-            <Detail label="Category">{CATEGORY_LABEL[t.category]}</Detail>
+            <Detail label="Category">{tr(CATEGORY_LABEL[t.category])}</Detail>
             <Detail label="Quantity">
-              {t.quantity} {UNIT_SHORT[t.unit]}
+              {number(t.quantity)} {tr(UNIT_SHORT[t.unit])}
             </Detail>
-            <Detail label="Condition">{CONDITION_LABEL[t.condition].split(" — ")[0]}</Detail>
+            <Detail label="Condition">{tr(CONDITION_LABEL[t.condition]).split(" — ")[0]}</Detail>
             <Detail label="Best before">
-              {formatDateTime(t.expiresAt)}
+              {dateTime(t.expiresAt)}
               {stage !== "completed" && stage !== "delivered" && stage !== "closed" && (
-                <span className="block text-ink-500">{formatRelative(t.expiresAt)}</span>
+                <span className="block text-ink-500">{relative(t.expiresAt)}</span>
               )}
             </Detail>
             {t.instructions && (
@@ -288,7 +301,7 @@ export default async function VolunteerTaskPage({ params, searchParams }: PagePr
             // eslint-disable-next-line @next/next/no-img-element -- private, auth-checked image route
             <img
               src={`/volunteer/tasks/${t.id}/image`}
-              alt={`Photo of ${t.foodType}`}
+              alt={tr("Photo of {food}", { food: t.foodType })}
               loading="lazy"
               className="mt-5 max-h-72 w-full rounded-2xl border border-cream-200 object-cover"
             />
@@ -299,7 +312,7 @@ export default async function VolunteerTaskPage({ params, searchParams }: PagePr
   );
 }
 
-function Place({
+async function Place({
   title,
   name,
   address,
@@ -314,10 +327,11 @@ function Place({
   contact: { name: string; phone: string | null } | null;
   when?: string;
 }) {
+  const { t } = await getI18n();
   return (
     <Card>
       <CardBody className="space-y-3 p-5">
-        <p className="text-xs font-semibold tracking-widest text-ink-500 uppercase">{title}</p>
+        <p className="text-xs font-semibold tracking-widest text-ink-500 uppercase">{t(title)}</p>
         <div>
           <p className="font-semibold text-brand-950">{name}</p>
           {address && <p className="text-sm text-ink-600">{address}</p>}
@@ -329,10 +343,10 @@ function Place({
               href={`tel:${contact.phone}`}
               className="flex h-12 items-center justify-center gap-2 rounded-full bg-brand-600 px-4 text-sm font-semibold text-white hover:bg-brand-700"
             >
-              Call {contact.name.split(" ")[0]} · {contact.phone}
+              {t("Call {name}", { name: contact.name.split(" ")[0] })} · {contact.phone}
             </a>
           ) : (
-            <p className="rounded-xl bg-cream-100 px-3 py-2 text-xs text-ink-500">Contact shared after you accept.</p>
+            <p className="rounded-xl bg-cream-100 px-3 py-2 text-xs text-ink-500">{t("Contact shared after you accept.")}</p>
           )}
           <a
             href={mapHref}
@@ -340,7 +354,7 @@ function Place({
             rel="noreferrer"
             className="flex h-12 items-center justify-center rounded-full border border-brand-900/15 px-4 text-sm font-semibold text-brand-900 hover:bg-cream-100"
           >
-            Open in Maps ↗
+            {t("Open in Maps")} ↗
           </a>
         </div>
       </CardBody>
@@ -348,7 +362,7 @@ function Place({
   );
 }
 
-function Proof({
+async function Proof({
   label,
   step,
   taskId,
@@ -359,19 +373,20 @@ function Proof({
   taskId: string;
   event: NonNullable<VolunteerTask["pickup"]>;
 }) {
+  const { t, dateTime } = await getI18n();
   return (
     <div className="flex gap-4">
       <span aria-hidden className="mt-1 size-2.5 shrink-0 rounded-full bg-brand-600" />
       <div className="min-w-0 flex-1 text-sm">
         <p className="font-semibold text-brand-950">
-          {label} · <span className="font-normal text-ink-600">{formatDateTime(event.createdAt)}</span>
+          {t(label)} · <span className="font-normal text-ink-600">{dateTime(event.createdAt)}</span>
         </p>
         {event.note && <p className="mt-1 text-ink-700">{event.note}</p>}
         {step && event.hasPhoto && (
           // eslint-disable-next-line @next/next/no-img-element -- private, auth-checked image route
           <img
             src={`/volunteer/tasks/${taskId}/proof/${step}`}
-            alt={`${label} photo`}
+            alt={t("{label} photo", { label: t(label) })}
             loading="lazy"
             className="mt-2 max-h-56 rounded-xl border border-cream-200 object-cover"
           />
@@ -381,10 +396,11 @@ function Proof({
   );
 }
 
-function Detail({ label, wide, children }: { label: string; wide?: boolean; children: ReactNode }) {
+async function Detail({ label, wide, children }: { label: string; wide?: boolean; children: ReactNode }) {
+  const { t } = await getI18n();
   return (
     <div className={wide ? "col-span-full" : undefined}>
-      <dt className="text-xs font-semibold tracking-widest text-ink-500 uppercase">{label}</dt>
+      <dt className="text-xs font-semibold tracking-widest text-ink-500 uppercase">{t(label)}</dt>
       <dd className="mt-1 text-sm text-brand-950">{children}</dd>
     </div>
   );

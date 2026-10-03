@@ -1,6 +1,7 @@
 "use client";
 
 import { useId, useRef, type ReactNode } from "react";
+import { useI18n } from "@/components/i18n-provider";
 import { buttonStyles, type ButtonVariant } from "./button";
 
 /**
@@ -22,10 +23,11 @@ export function Modal({
 }) {
   const ref = useRef<HTMLDialogElement>(null);
   const titleId = useId();
+  const { t } = useI18n();
   return (
     <>
       <button type="button" className={buttonStyles({ variant: triggerVariant })} onClick={() => ref.current?.showModal()}>
-        {triggerLabel}
+        {t(triggerLabel)}
       </button>
       <dialog
         ref={ref}
@@ -37,13 +39,13 @@ export function Modal({
           <div className="flex items-start justify-between gap-4">
             <div>
               <h2 id={titleId} className="text-lg font-semibold text-ink-900">
-                {title}
+                {t(title)}
               </h2>
-              {description && <p className="mt-1 text-sm text-ink-500">{description}</p>}
+              {description && <p className="mt-1 text-sm text-ink-500">{t(description)}</p>}
             </div>
             <button
               type="button"
-              aria-label="Close"
+              aria-label={t("Close")}
               onClick={() => ref.current?.close()}
               className="-m-1 rounded-full p-1 text-ink-500 hover:bg-ink-100"
             >

@@ -2,6 +2,7 @@
 
 import { registerNgo } from "@/app/actions/auth";
 import { updateNgoProfile } from "@/app/actions/ngo";
+import { useI18n } from "@/components/i18n-provider";
 import { LocationPicker } from "@/components/map/location-picker";
 import { Alert, Button, Input, Select, Textarea } from "@/components/ui";
 import { useFormAction } from "@/components/ui/use-form-action";
@@ -12,6 +13,7 @@ const NGO_TYPES = toOptions(NGO_TYPE_LABEL);
 
 export function NgoRegisterForm() {
   const { state, action, onSubmit, pending } = useFormAction(registerNgo);
+  const { t } = useI18n();
   const e = state?.errors;
   return (
     <form action={action} onSubmit={onSubmit} className="space-y-5" noValidate>
@@ -78,13 +80,13 @@ export function NgoRegisterForm() {
       <div>
         <label className="flex gap-3 text-sm text-ink-700">
           <input type="checkbox" name="terms" className="mt-0.5 size-4 shrink-0 rounded accent-brand-600" />
-          We will handle donated food hygienically, serve it promptly and never sell it.
+          {t("We will handle donated food hygienically, serve it promptly and never sell it.")}
         </label>
-        {e?.terms && <p className="mt-1 text-xs font-medium text-red-600">{e.terms[0]}</p>}
+        {e?.terms && <p className="mt-1 text-xs font-medium text-red-600">{t(e.terms[0])}</p>}
       </div>
 
       <Button type="submit" block size="lg" loading={pending} className="rounded-full">
-        Create NGO account
+        {t("Create NGO account")}
       </Button>
     </form>
   );
@@ -105,6 +107,7 @@ type NgoProfile = {
 
 export function NgoProfileForm({ profile }: { profile: NgoProfile }) {
   const { state, action, onSubmit, pending } = useFormAction(updateNgoProfile);
+  const { t } = useI18n();
   const e = state?.errors;
   return (
     <form action={action} onSubmit={onSubmit} className="space-y-5" noValidate>
@@ -178,16 +181,17 @@ export function NgoProfileForm({ profile }: { profile: NgoProfile }) {
         defaultValue={profile.point}
       />
       <Button type="submit" loading={pending} className="rounded-full px-6">
-        Save changes
+        {t("Save changes")}
       </Button>
     </form>
   );
 }
 
 function FormSection({ title, children }: { title: string; children: React.ReactNode }) {
+  const { t } = useI18n();
   return (
     <fieldset className="space-y-5">
-      <legend className="mb-4 font-display text-lg font-semibold text-brand-950">{title}</legend>
+      <legend className="mb-4 font-display text-lg font-semibold text-brand-950">{t(title)}</legend>
       {children}
     </fieldset>
   );

@@ -1,46 +1,50 @@
 import Link from "next/link";
+import { SITE_COPY } from "@/components/home/copy";
+import { LanguageToggle } from "@/components/home/language-toggle";
+import type { Lang } from "@/lib/i18n";
 import { Logo } from "./logo";
 
-export function Footer() {
+export function Footer({ lang }: { lang: Lang }) {
+  const t = SITE_COPY[lang].footer;
   return (
-    <footer className="grain mt-auto overflow-hidden bg-brand-950 text-cream-100">
+    <footer lang={lang} className="grain-night mt-auto overflow-hidden border-t border-white/5 bg-night-950 text-cream-100">
       <div className="mx-auto max-w-6xl px-4 pt-16 pb-8 sm:px-6">
         <div className="grid gap-10 sm:grid-cols-2 lg:grid-cols-4">
-          <div className="space-y-4 lg:col-span-2">
+          <div className="space-y-5 lg:col-span-2">
             <Logo invert />
-            <p className="max-w-sm text-sm leading-relaxed text-brand-200">
-              We connect surplus food from restaurants, hotels, shops and homes with NGOs and volunteers, so good food
-              feeds people instead of landfills.
-            </p>
+            <p className="max-w-sm text-sm leading-relaxed text-mist-300">{t.about}</p>
+            <LanguageToggle lang={lang} label={SITE_COPY[lang].nav.language} />
           </div>
           <FooterColumn
-            title="Platform"
+            title={t.platform}
             links={[
-              { href: "/#how-it-works", label: "How it works" },
-              { href: "/register", label: "Donate food" },
-              { href: "/login", label: "Log in" },
+              { href: "/#how-it-works", label: t.how },
+              { href: "/register", label: t.donate },
+              { href: "/login", label: t.login },
             ]}
           />
           <FooterColumn
-            title="Get involved"
+            title={t.involved}
             links={[
-              { href: "/register?role=ngo", label: "For NGOs" },
-              { href: "/register?role=volunteer", label: "Volunteer" },
-              { href: "/#impact", label: "Our impact" },
+              { href: "/register?role=ngo", label: t.forNgos },
+              { href: "/register?role=volunteer", label: t.volunteer },
+              { href: "/#impact", label: t.impact },
             ]}
           />
         </div>
 
         <p
           aria-hidden
-          className="mt-14 font-display text-[18vw] leading-none font-semibold tracking-tighter text-brand-900 select-none sm:text-[9.5rem]"
+          className="mt-14 bg-linear-to-b from-night-700 to-night-900 bg-clip-text font-display text-[18vw] leading-none font-semibold tracking-tighter text-transparent select-none sm:text-[9.5rem]"
         >
-          FoodBridge
+          {t.wordmark}
         </p>
 
-        <div className="mt-6 flex flex-col justify-between gap-2 border-t border-white/10 pt-6 text-xs text-brand-300 sm:flex-row">
-          <p>© {new Date().getFullYear()} FoodBridge · FoodWasteZero initiative</p>
-          <p>Made with care to feed people, not landfills.</p>
+        <div className="mt-6 flex flex-col justify-between gap-2 border-t border-white/10 pt-6 text-xs text-mist-400 sm:flex-row">
+          <p>
+            © {new Date().getFullYear()} FoodBridge · {t.initiative}
+          </p>
+          <p>{t.tagline}</p>
         </div>
       </div>
     </footer>
@@ -50,11 +54,11 @@ export function Footer() {
 function FooterColumn({ title, links }: { title: string; links: { href: string; label: string }[] }) {
   return (
     <div>
-      <h2 className="text-xs font-semibold tracking-widest text-accent-300 uppercase">{title}</h2>
+      <p className="text-xs font-semibold tracking-widest text-accent-300 uppercase">{title}</p>
       <ul className="mt-4 space-y-2.5">
         {links.map((l) => (
           <li key={l.href}>
-            <Link href={l.href} className="text-sm text-cream-100/80 transition-colors hover:text-accent-300">
+            <Link href={l.href} className="text-sm text-mist-200 transition-colors hover:text-accent-300">
               {l.label}
             </Link>
           </li>

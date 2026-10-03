@@ -10,9 +10,12 @@ import { ROLE_VIEWS, USER_STATUS_META } from "@/lib/admin/meta";
 import { listUsers } from "@/lib/admin/service";
 import { requireRole } from "@/lib/auth/dal";
 import { ROLE_LABEL } from "@/lib/auth/roles";
-import { formatDate } from "@/lib/utils";
+import { getI18n } from "@/lib/i18n-server";
 
-export const metadata: Metadata = { title: "Users · Admin" };
+export async function generateMetadata(): Promise<Metadata> {
+  const { t } = await getI18n();
+  return { title: t("Users") };
+}
 
 const LIMIT = 100;
 const STATUS_OPTIONS = USER_STATUSES.map((s) => ({ value: s, label: USER_STATUS_META[s].label }));
@@ -24,6 +27,7 @@ export default async function AdminUsersPage({ searchParams }: PageProps<"/admin
   const role = ROLE_VIEWS.find((r) => r.value === params.role)?.value;
   const filters = parseAdminFilters(params, USER_STATUSES);
   const rows = await listUsers({ ...filters, role }, LIMIT);
+  const { t, date, number } = await getI18n();
 
   const tabHref = (value?: string) => {
     const p = new URLSearchParams();
@@ -59,17 +63,17 @@ export default async function AdminUsersPage({ searchParams }: PageProps<"/admin
                     <span className="block text-xs text-ink-500">{u.email}</span>
                   </Td>
                   <Td className="text-ink-700">
-                    {ROLE_LABEL[u.role]}
+                    {t(ROLE_LABEL[u.role])}
                     {u.role === "volunteer" && u.status === "active" && (
-                      <span className="block text-xs text-ink-500">{u.available ? "Available" : "Unavailable"}</span>
+                      <span className="block text-xs text-ink-500">{t(u.available ? "Available" : "Unavailable")}</span>
                     )}
                   </Td>
                   <Td>
                     <UserStatusBadge status={u.status} />
                   </Td>
                   <Td className="text-ink-700">{u.area ?? "—"}</Td>
-                  <Td className="text-right tabular-nums">{u.activity}</Td>
-                  <Td className="whitespace-nowrap text-ink-600">{formatDate(u.createdAt)}</Td>
+                  <Td className="text-right tabular-nums">{number(u.activity)}</Td>
+                  <Td className="whitespace-nowrap text-ink-600">{date(u.createdAt)}</Td>
                   <Td>
                     <UserActions userId={u.id} role={u.role as "donor" | "ngo" | "volunteer"} status={u.status} compact />
                   </Td>

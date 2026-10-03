@@ -1,4 +1,7 @@
+"use client";
+
 import type { ReactNode } from "react";
+import { useI18n } from "@/components/i18n-provider";
 import { cn } from "@/lib/utils";
 
 type Tone = "info" | "success" | "warning" | "error";
@@ -37,6 +40,7 @@ export function Alert({
   children?: ReactNode;
   className?: string;
 }) {
+  const { t: tr } = useI18n();
   const t = TONES[tone];
   return (
     <div
@@ -47,8 +51,8 @@ export function Alert({
         <path fillRule="evenodd" clipRule="evenodd" d={t.path} />
       </svg>
       <div className="space-y-0.5">
-        {title && <p className="font-semibold">{title}</p>}
-        {children && <div>{children}</div>}
+        {title && <p className="font-semibold">{tr(title)}</p>}
+        {children && <div>{typeof children === "string" ? tr(children) : children}</div>}
       </div>
     </div>
   );

@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import { useMemo, useState } from "react";
+import { useI18n } from "@/components/i18n-provider";
 import { distanceKm, formatDistance } from "@/lib/geo";
 import { OVERVIEW_LAYER_LABEL, type OverviewLayer, type OverviewMapData } from "@/lib/location/meta";
 import { cn } from "@/lib/utils";
@@ -17,6 +18,7 @@ const LAYER_STYLE: Record<OverviewLayer, { kind: MarkerKind; glyph: string; dot:
 
 /** The role "Map" page: every relevant donor, NGO, volunteer and food pickup, with layer toggles. */
 export function OverviewMap({ data }: { data: OverviewMapData }) {
+  const { t, number } = useI18n();
   const [hidden, setHidden] = useState<Set<OverviewLayer>>(new Set());
   const counts = useMemo(() => {
     const c = {} as Record<OverviewLayer, number>;
@@ -37,7 +39,7 @@ export function OverviewMap({ data }: { data: OverviewMapData }) {
       href: p.href,
       approximate: p.approximate,
     })),
-    ...(data.me ? [{ id: "me", point: data.me, kind: "me" as const, glyph: "★", title: "You", subtitle: "Your saved location" }] : []),
+    ...(data.me ? [{ id: "me", point: data.me, kind: "me" as const, glyph: "★", title: t("You"), subtitle: t("Your saved location") }] : []),
   ];
   const nearest = data.me
     ? visible
@@ -58,7 +60,7 @@ export function OverviewMap({ data }: { data: OverviewMapData }) {
 
   return (
     <div className="space-y-4">
-      <div className="flex flex-wrap gap-2" role="group" aria-label="Show on map">
+      <div className="flex flex-wrap gap-2" role="group" aria-label={t("Show on map")}>
         {data.layers.map((layer) => {
           const on = !hidden.has(layer);
           return (
@@ -73,7 +75,7 @@ export function OverviewMap({ data }: { data: OverviewMapData }) {
               )}
             >
               <span aria-hidden className={cn("size-2.5 rounded-full", LAYER_STYLE[layer].dot, !on && "opacity-40")} />
-              {OVERVIEW_LAYER_LABEL[layer]} <span className="text-ink-500">({counts[layer] ?? 0})</span>
+              {t(OVERVIEW_LAYER_LABEL[layer])} <span className="text-ink-500">({number(counts[layer] ?? 0)})</span>
             </button>
           );
         })}
@@ -82,26 +84,26 @@ export function OverviewMap({ data }: { data: OverviewMapData }) {
       {markers.length ? (
         <LazyMap markers={markers} routes={hidden.has("donation") ? [] : data.routes} fitKey={data.points.length ? "all" : "me"} className="h-[28rem] sm:h-[32rem]" />
       ) : (
-        <p className="rounded-2xl bg-cream-100 px-4 py-10 text-center text-sm text-ink-500">Nothing to show on the map yet.</p>
+        <p className="rounded-2xl bg-cream-100 px-4 py-10 text-center text-sm text-ink-500">{t("Nothing to show on the map yet.")}</p>
       )}
 
       <p className="text-xs text-ink-500">
-        Tap a pin for details. Dashed lines join a pickup to its delivery point. Faded pins with a circle are approximate (about 1 km) to protect
-        private homes.
+        {t(
+          "Tap a pin for details. Dashed lines join a pickup to its delivery point. Faded pins with a circle are approximate (about 1 km) to protect private homes.",
+        )}
         {!data.me && (
           <>
             {" "}
             <Link href="/profile" className="font-semibold text-brand-700 hover:underline">
-              Set your location
-            </Link>{" "}
-            to see distances.
+              {t("Set your location to see distances.")}
+            </Link>
           </>
         )}
       </p>
 
       {nearest.length > 0 && (
         <section>
-          <h2 className="mb-2 text-sm font-semibold text-brand-950">Nearest to you</h2>
+          <h2 className="mb-2 text-sm font-semibold text-brand-950">{t("Nearest to you")}</h2>
           <ul className="divide-y divide-cream-200 rounded-2xl border border-cream-200 bg-white">
             {nearest.map((p) => (
               <li key={p.id}>
@@ -111,7 +113,7 @@ export function OverviewMap({ data }: { data: OverviewMapData }) {
                     <span className="block truncate font-medium text-brand-950">{p.title}</span>
                     {p.subtitle && <span className="block truncate text-xs text-ink-500">{p.subtitle}</span>}
                   </span>
-                  <span className="shrink-0 text-xs font-semibold text-ink-600">{formatDistance(p.km)}</span>
+                  <span className="shrink-0 text-xs font-semibold text-ink-600">{t(formatDistance(p.km) ?? "")}</span>
                 </Link>
               </li>
             ))}

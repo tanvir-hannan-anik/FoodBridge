@@ -1,0 +1,45 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1600 900" width="100%" height="100%">
+  <!-- Background -->
+  <rect width="1600" height="900" fill="#BA8D36" rx="36"/>
+  
+  <!-- Top Left: TARGET 12.3 -->
+  <text x="80" y="145" font-family="'Outfit', 'Impact', sans-serif" font-weight="900" font-size="96" fill="#FFFFFF" letter-spacing="1">TARGET  12·3</text>
+  
+  <!-- Top Right: 12 RESPONSIBLE CONSUMPTION AND PRODUCTION + INFINITY LOOP -->
+  <g fill="#FFFFFF">
+    <text x="1270" y="105" font-family="'Outfit', 'Impact', sans-serif" font-weight="900" font-size="64">12</text>
+    <text x="1350" y="85" font-family="'Outfit', sans-serif" font-weight="800" font-size="28" letter-spacing="0.5">RESPONSIBLE</text>
+    <text x="1350" y="118" font-family="'Outfit', sans-serif" font-weight="800" font-size="28" letter-spacing="0.5">CONSUMPTION</text>
+    <text x="1350" y="150" font-family="'Outfit', sans-serif" font-weight="800" font-size="25" letter-spacing="0.5">AND PRODUCTION</text>
+    
+    <!-- Infinity loop symbol -->
+    <path d="M 1300 240 C 1260 210 1230 210 1205 240 C 1180 270 1210 300 1245 285 L 1355 195 C 1390 170 1435 200 1420 240 C 1400 280 1350 280 1300 240 Z" fill="none" stroke="#FFFFFF" stroke-width="26" stroke-linecap="round"/>
+  </g>
+  
+  <!-- Center: Recycling Bin Silhouette -->
+  <!-- Bin Lid Handle & Lid -->
+  <rect x="735" y="185" width="130" height="28" rx="8" fill="#FFFFFF"/>
+  <rect x="590" y="215" width="420" height="38" rx="12" fill="#FFFFFF"/>
+  
+  <!-- Bin Body (Cutout Frame) -->
+  <path d="M 620 265 L 980 265 L 945 680 L 655 680 Z" fill="none" stroke="#FFFFFF" stroke-width="28" stroke-linejoin="round"/>
+  
+  <!-- Icons Inside Bin -->
+  <!-- Small Bowl with 3 steam lines -->
+  <path d="M 680 390 L 760 390 C 760 435 735 450 720 450 C 705 450 680 435 680 390 Z" fill="#FFFFFF"/>
+  <path d="M 700 345 Q 695 365 700 380" stroke="#FFFFFF" stroke-width="5" fill="none" stroke-linecap="round"/>
+  <path d="M 720 345 Q 715 365 720 380" stroke="#FFFFFF" stroke-width="5" fill="none" stroke-linecap="round"/>
+  <path d="M 740 345 Q 735 365 740 380" stroke="#FFFFFF" stroke-width="5" fill="none" stroke-linecap="round"/>
+  
+  <!-- Small Fish Symbol -->
+  <g fill="#FFFFFF">
+    <path d="M 860 395 C 830 380 810 405 780 410 C 810 415 830 440 860 425 L 890 440 L 880 410 L 890 380 Z"/>
+    <circle cx="810" cy="408" r="3" fill="#BA8D36"/>
+  </g>
+  
+  <!-- 50% Text -->
+  <text x="800" y="605" font-family="'Outfit', 'Impact', sans-serif" font-weight="900" font-size="160" fill="#FFFFFF" text-anchor="middle" letter-spacing="1">50%</text>
+  
+  <!-- Bottom Text: HALVE GLOBAL PER CAPITA FOOD WASTE -->
+  <text x="800" y="800" font-family="'Outfit', 'Impact', sans-serif" font-weight="900" font-size="78" fill="#FFFFFF" text-anchor="middle" letter-spacing="2">HALVE GLOBAL PER CAPITA FOOD WASTE</text>
+</svg>

@@ -10,9 +10,12 @@ import { parseAdminFilters } from "@/lib/admin/filters";
 import { listAdminDonations } from "@/lib/admin/service";
 import { requireRole } from "@/lib/auth/dal";
 import { STATUS_META, UNIT_SHORT } from "@/lib/donations/meta";
-import { formatDateTime } from "@/lib/utils";
+import { getI18n } from "@/lib/i18n-server";
 
-export const metadata: Metadata = { title: "Donations · Admin" };
+export async function generateMetadata(): Promise<Metadata> {
+  const { t } = await getI18n();
+  return { title: t("Donations") };
+}
 
 const LIMIT = 100;
 const STATUS_OPTIONS = DONATION_STATUSES.map((s) => ({ value: s, label: STATUS_META[s].label }));
@@ -21,6 +24,7 @@ export default async function AdminDonationsPage({ searchParams }: PageProps<"/a
   await requireRole("admin");
   const filters = parseAdminFilters(await searchParams, DONATION_STATUSES);
   const rows = await listAdminDonations(filters, LIMIT);
+  const { t, dateTime, number } = await getI18n();
 
   return (
     <>
@@ -37,7 +41,7 @@ export default async function AdminDonationsPage({ searchParams }: PageProps<"/a
                       {d.foodType}
                     </Link>
                     <span className="block text-xs text-ink-500">
-                      {d.quantity} {UNIT_SHORT[d.unit]}
+                      {number(d.quantity)} {t(UNIT_SHORT[d.unit])}
                     </span>
                   </Td>
                   <Td>
@@ -52,10 +56,12 @@ export default async function AdminDonationsPage({ searchParams }: PageProps<"/a
                   </Td>
                   <Td className="text-ink-700">
                     {d.ngoName ?? "—"}
-                    {d.volunteerName && <span className="block text-xs text-ink-500">Volunteer: {d.volunteerName}</span>}
+                    {d.volunteerName && (
+                      <span className="block text-xs text-ink-500">{t("Volunteer: {name}", { name: d.volunteerName })}</span>
+                    )}
                   </Td>
-                  <Td className="whitespace-nowrap text-ink-600">{formatDateTime(d.expiresAt)}</Td>
-                  <Td className="whitespace-nowrap text-ink-600">{formatDateTime(d.createdAt)}</Td>
+                  <Td className="whitespace-nowrap text-ink-600">{dateTime(d.expiresAt)}</Td>
+                  <Td className="whitespace-nowrap text-ink-600">{dateTime(d.createdAt)}</Td>
                 </tr>
               ))}
             </Table>

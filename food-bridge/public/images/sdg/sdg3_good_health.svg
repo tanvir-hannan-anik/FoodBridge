@@ -1,0 +1,8 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 600 600" width="100%" height="100%">
+  <rect width="600" height="600" fill="#4C9F38" rx="28"/>
+  <text x="35" y="140" font-family="'Outfit', 'Impact', sans-serif" font-weight="900" font-size="120" fill="#FFFFFF">3</text>
+  <text x="140" y="80" font-family="'Outfit', sans-serif" font-weight="900" font-size="38" fill="#FFFFFF">GOOD HEALTH</text>
+  <text x="140" y="125" font-family="'Outfit', sans-serif" font-weight="900" font-size="38" fill="#FFFFFF">&amp; WELL-BEING</text>
+  <!-- ECG / Pulse Line with Heart Motif -->
+  <path d="M 80 380 L 220 380 L 260 260 L 310 490 L 360 330 L 400 420 L 430 380 L 520 380" fill="none" stroke="#FFFFFF" stroke-width="26" stroke-linecap="round" stroke-linejoin="round"/>
+</svg>

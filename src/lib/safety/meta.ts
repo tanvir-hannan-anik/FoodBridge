@@ -44,10 +44,22 @@ export function safetyStatus(d: { expiresAt: Date; safetyFlag?: SafetyFlag | nul
   return left <= SAFETY_RULES.expiringSoonMinutes * 60_000 ? "expiring_soon" : "safe";
 }
 
-/** "2 h 15 min left", "40 min left", "expired 3 h ago". */
-export function remainingLabel(expiresAt: Date, now = new Date()) {
+const BN_DIGITS = "০১২৩৪৫৬৭৮৯";
+
+/** "2 h 15 min left", "40 min left", "expired 3 h ago" ("২ ঘণ্টা ১৫ মিনিট বাকি" in Bangla). */
+export function remainingLabel(expiresAt: Date, now = new Date(), lang: "en" | "bn" = "en") {
   const minutes = Math.round((expiresAt.getTime() - now.getTime()) / 60_000);
   const abs = Math.abs(minutes);
+  if (lang === "bn") {
+    const text =
+      abs < 60
+        ? `${abs} মিনিট`
+        : abs < 48 * 60
+          ? `${Math.floor(abs / 60)} ঘণ্টা${abs % 60 ? ` ${abs % 60} মিনিট` : ""}`
+          : `${Math.round(abs / 1440)} দিন`;
+    const out = minutes > 0 ? `${text} বাকি` : `${text} আগে মেয়াদ শেষ`;
+    return out.replace(/[0-9]/g, (d) => BN_DIGITS[Number(d)]);
+  }
   const text = abs < 60 ? `${abs} min` : abs < 48 * 60 ? `${Math.floor(abs / 60)} h${abs % 60 ? ` ${abs % 60} min` : ""}` : `${Math.round(abs / 1440)} days`;
   return minutes > 0 ? `${text} left` : `expired ${text} ago`;
 }

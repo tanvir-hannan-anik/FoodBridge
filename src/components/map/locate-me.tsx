@@ -2,32 +2,34 @@
 
 import { useState, useTransition } from "react";
 import { saveMyLocation } from "@/app/actions/volunteer";
-import { cn, formatRelative } from "@/lib/utils";
+import { useI18n } from "@/components/i18n-provider";
+import { cn } from "@/lib/utils";
 
 /**
  * Volunteer's "I'm here now": asks the browser for the current position ONCE and saves it, so the
  * nearest pickups are offered first. No background tracking.
  */
 export function LocateMe({ locatedAt, hasLocation }: { locatedAt: Date | null; hasLocation: boolean }) {
+  const { t, relative } = useI18n();
   const [pending, start] = useTransition();
   const [message, setMessage] = useState<{ error?: boolean; text: string } | null>(null);
 
   function locate() {
     if (!("geolocation" in navigator)) {
-      setMessage({ error: true, text: "This browser can’t share location. Set a pin on your profile instead." });
+      setMessage({ error: true, text: t("This browser can’t share location. Set a pin on your profile instead.") });
       return;
     }
-    setMessage({ text: "Finding you…" });
+    setMessage({ text: t("Finding you…") });
     navigator.geolocation.getCurrentPosition(
       (pos) =>
         start(async () => {
           const res = await saveMyLocation(pos.coords.latitude, pos.coords.longitude);
-          setMessage(res?.message ? { error: true, text: res.message } : { text: "Location updated. Nearby pickups come to you first." });
+          setMessage(res?.message ? { error: true, text: t(res.message) } : { text: t("Location updated. Nearby pickups come to you first.") });
         }),
       (err) =>
         setMessage({
           error: true,
-          text: err.code === err.PERMISSION_DENIED ? "Location permission was denied." : "Couldn’t get your location. Try again.",
+          text: t(err.code === err.PERMISSION_DENIED ? "Location permission was denied." : "Couldn’t get your location. Try again."),
         }),
       { enableHighAccuracy: true, timeout: 15_000, maximumAge: 60_000 },
     );
@@ -45,11 +47,13 @@ export function LocateMe({ locatedAt, hasLocation }: { locatedAt: Date | null; h
           <path d="M12 21s-7-6.2-7-11.5a7 7 0 0 1 14 0C19 14.8 12 21 12 21Z" />
           <circle cx="12" cy="9.5" r="2.5" />
         </svg>
-        {pending ? "Saving…" : "Update my location"}
+        {t(pending ? "Saving…" : "Update my location")}
       </button>
       <span className={cn("text-xs", message?.error ? "font-medium text-red-300" : "text-brand-200")} aria-live="polite">
         {message?.text ??
-          (locatedAt ? `Location from ${formatRelative(locatedAt)}` : hasLocation ? "Using your profile pin" : "No location yet: tasks aren’t sorted by distance")}
+          (locatedAt
+            ? t("Location from {time}", { time: relative(locatedAt) })
+            : t(hasLocation ? "Using your profile pin" : "No location yet: tasks aren’t sorted by distance"))}
       </span>
     </div>
   );

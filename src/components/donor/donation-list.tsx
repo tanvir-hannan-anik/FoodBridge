@@ -2,12 +2,13 @@ import Link from "next/link";
 import { Badge } from "@/components/ui";
 import type { DonationListItem } from "@/lib/donations/service";
 import { ACTIVE_STATUSES, CATEGORY_LABEL, UNIT_SHORT } from "@/lib/donations/meta";
-import { formatDateTime } from "@/lib/utils";
+import { getI18n } from "@/lib/i18n-server";
 import { SafetyBadge } from "@/components/safety-badge";
 import { FoodIcon } from "./food-icon";
 import { StatusBadge } from "./status-badge";
 
-export function DonationList({ items, compact }: { items: DonationListItem[]; compact?: boolean }) {
+export async function DonationList({ items, compact }: { items: DonationListItem[]; compact?: boolean }) {
+  const { t, dateTime, number } = await getI18n();
   return (
     <ul className="divide-y divide-cream-200">
       {items.map((d) => {
@@ -25,20 +26,20 @@ export function DonationList({ items, compact }: { items: DonationListItem[]; co
                   <StatusBadge status={d.status} />
                   {d.status === "PENDING" && d.pendingRequests > 0 && (
                     <Badge tone="warning">
-                      {d.pendingRequests} {d.pendingRequests === 1 ? "request" : "requests"}
+                      {t(d.pendingRequests === 1 ? "{n} request" : "{n} requests", { n: d.pendingRequests })}
                     </Badge>
                   )}
                 </div>
                 <p className="mt-1 flex flex-wrap items-center gap-x-2 text-sm text-ink-500">
                   <span>
-                    {d.quantity} {UNIT_SHORT[d.unit]}
+                    {number(d.quantity)} {t(UNIT_SHORT[d.unit])}
                   </span>
                   <Dot />
-                  <span>~{d.mealsEstimate} meals</span>
+                  <span>{t("~{n} meals", { n: d.mealsEstimate })}</span>
                   {!compact && (
                     <span className="hidden items-center gap-x-2 sm:flex">
                       <Dot />
-                      {CATEGORY_LABEL[d.category]}
+                      {t(CATEGORY_LABEL[d.category])}
                     </span>
                   )}
                 </p>
@@ -48,7 +49,7 @@ export function DonationList({ items, compact }: { items: DonationListItem[]; co
                 {active ? (
                   <SafetyBadge expiresAt={d.expiresAt} safetyFlag={d.safetyFlag} />
                 ) : (
-                  <span className="text-xs text-ink-500">{formatDateTime(d.createdAt)}</span>
+                  <span className="text-xs text-ink-500">{dateTime(d.createdAt)}</span>
                 )}
               </div>
               <svg

@@ -1,7 +1,9 @@
 import Link from "next/link";
 import { logout } from "@/app/actions/auth";
 import type { Role } from "@/db/schema";
+import { LanguageToggle } from "@/components/home/language-toggle";
 import { ROLE_HOME, ROLE_LABEL } from "@/lib/auth/roles";
+import { getI18n } from "@/lib/i18n-server";
 import { Logo } from "./logo";
 import { MenuDetails } from "./menu-details";
 import { NavLink, TabLink } from "./nav-link";
@@ -100,7 +102,9 @@ function Icon({ name, className }: { name: keyof typeof ICONS; className?: strin
 }
 
 /** Signed-in header: role navigation, primary CTA, notifications, account menu (+ mobile tab bar per portal). */
-export function AppNavbar({ name, role, unread }: { name: string; role: Role; unread: number }) {
+export async function AppNavbar({ name, role, unread }: { name: string; role: Role; unread: number }) {
+  const { t, lang, number } = await getI18n();
+  const badge = unread > 9 ? `${number(9)}+` : number(unread);
   const links = NAV[role];
   const portal = PORTAL[role];
   const desktopLinks = links.filter((l) => l.icon !== "bell");
@@ -115,17 +119,17 @@ export function AppNavbar({ name, role, unread }: { name: string; role: Role; un
 
   return (
     <>
-      <header className="sticky top-0 z-40 border-b border-brand-900/8 bg-cream-100/90 backdrop-blur-md">
+      <header className="sticky top-0 z-40 border-b border-white/5 bg-night-950/95 backdrop-blur-md">
         <div className="mx-auto flex h-17 max-w-6xl items-center gap-6 px-4 sm:px-6">
-          <Logo href={ROLE_HOME[role]} />
+          <Logo href={ROLE_HOME[role]} invert />
 
           <nav
-            aria-label="Portal"
-            className={`hidden items-center gap-1 rounded-full border border-brand-900/10 bg-white/70 p-1 ${wide ? "xl:flex" : "md:flex"}`}
+            aria-label={t("Portal")}
+            className={`hidden items-center gap-1 rounded-full border border-white/10 bg-white/[0.04] p-1 ${wide ? "xl:flex" : "md:flex"}`}
           >
             {desktopLinks.map((l) => (
               <NavLink key={l.href} href={l.href} exact={l.href === ROLE_HOME[role]}>
-                {l.label}
+                {t(l.label)}
               </NavLink>
             ))}
           </nav>
@@ -139,58 +143,60 @@ export function AppNavbar({ name, role, unread }: { name: string; role: Role; un
                     className="hidden h-10 items-center gap-1.5 rounded-full bg-brand-600 px-5 text-sm font-semibold text-white shadow-glow hover:bg-brand-700 md:inline-flex"
                   >
                     <Icon name={portal.cta.icon} className="size-4" />
-                    {portal.cta.label}
+                    {t(portal.cta.label)}
                   </Link>
                 )}
                 <Link
                   href={portal.alerts}
-                  aria-label={unread ? `Notifications, ${unread} unread` : "Notifications"}
-                  className="relative hidden size-10 place-items-center rounded-full border border-brand-900/10 bg-white/70 text-brand-900 hover:bg-white md:grid"
+                  aria-label={unread ? t("Notifications, {n} unread", { n: unread }) : t("Notifications")}
+                  className="relative hidden size-10 place-items-center rounded-full border border-white/10 bg-white/5 text-cream-50 hover:bg-white/10 md:grid"
                 >
                   <Icon name="bell" className="size-5" />
-                  {unread > 0 && <UnreadDot count={unread} className="-top-1 -right-1" />}
+                  {unread > 0 && <UnreadDot count={unread} text={badge} className="-top-1 -right-1 ring-night-950" />}
                 </Link>
               </>
             )}
 
+            <LanguageToggle lang={lang} label={t("Language")} />
+
             <MenuDetails className="relative">
               <summary
-                aria-label="Account menu"
-                className="flex cursor-pointer items-center gap-2.5 rounded-full border border-brand-900/10 bg-white/70 py-1 pr-3 pl-1 hover:bg-white"
+                aria-label={t("Account menu")}
+                className="flex cursor-pointer items-center gap-2.5 rounded-full border border-white/10 bg-white/5 py-1 pr-3 pl-1 hover:bg-white/10"
               >
-                <span className="grid size-8 place-items-center rounded-full bg-brand-950 text-xs font-bold text-accent-300">
+                <span className="grid size-8 place-items-center rounded-full bg-accent-400 text-xs font-bold text-night-950">
                   {initials}
                 </span>
-                <span className="hidden max-w-32 truncate text-sm font-semibold text-brand-950 sm:block">{name}</span>
-                <svg aria-hidden viewBox="0 0 20 20" fill="currentColor" className="size-4 text-ink-500">
+                <span className="hidden max-w-32 truncate text-sm font-semibold text-cream-50 sm:block">{name}</span>
+                <svg aria-hidden viewBox="0 0 20 20" fill="currentColor" className="size-4 text-mist-400">
                   <path d="M5.2 7.2a.75.75 0 0 1 1.06 0L10 10.94l3.74-3.74a.75.75 0 1 1 1.06 1.06l-4.27 4.27a.75.75 0 0 1-1.06 0L5.2 8.26a.75.75 0 0 1 0-1.06Z" />
                 </svg>
               </summary>
               <div className="absolute right-0 mt-2 w-64 rounded-2xl border border-cream-200 bg-white p-2 shadow-raised">
                 <div className="rounded-xl bg-cream-100 px-3 py-2.5">
                   <p className="truncate text-sm font-semibold text-brand-950">{name}</p>
-                  <p className="text-xs text-ink-500">{ROLE_LABEL[role]} account</p>
+                  <p className="text-xs text-ink-500">{t("{role} account", { role: t(ROLE_LABEL[role]) })}</p>
                 </div>
                 <div className={`mt-1 py-1 ${wide ? "xl:hidden" : "md:hidden"}`}>
                   {links.map((l) => (
                     <Link key={l.href} href={l.href} className="block rounded-xl px-3 py-2.5 text-sm hover:bg-cream-100">
-                      {l.label}
+                      {t(l.label)}
                     </Link>
                   ))}
                 </div>
                 <div className={`border-t border-cream-200 pt-1 ${wide ? "xl:mt-1" : "md:mt-1"}`}>
                   <Link href="/profile" className="block rounded-xl px-3 py-2.5 text-sm hover:bg-cream-100">
-                    Profile &amp; settings
+                    {t("Profile & settings")}
                   </Link>
                   <Link href="/assistant" className="block rounded-xl px-3 py-2.5 text-sm hover:bg-cream-100">
-                    Ask FoodBridge (assistant)
+                    {t("Ask FoodBridge (assistant)")}
                   </Link>
                   <form action={logout}>
                     <button
                       type="submit"
                       className="block w-full rounded-xl px-3 py-2.5 text-left text-sm font-medium text-red-600 hover:bg-red-50"
                     >
-                      Log out
+                      {t("Log out")}
                     </button>
                   </form>
                 </div>
@@ -203,12 +209,12 @@ export function AppNavbar({ name, role, unread }: { name: string; role: Role; un
       {/* Mobile tab bar: the portal's core actions always one tap away. */}
       {portal && (
         <nav
-          aria-label="Quick navigation"
+          aria-label={t("Quick navigation")}
           className="fixed inset-x-0 bottom-0 z-40 border-t border-brand-900/10 bg-white/95 pb-[env(safe-area-inset-bottom)] backdrop-blur-md md:hidden"
         >
           <ul className="grid grid-cols-5 items-end">
             <li>
-              <TabLink href={ROLE_HOME[role]} exact label="Home">
+              <TabLink href={ROLE_HOME[role]} exact label={t("Home")}>
                 <Icon name="home" className="size-6" />
               </TabLink>
             </li>
@@ -220,24 +226,24 @@ export function AppNavbar({ name, role, unread }: { name: string; role: Role; un
                 <span className="grid size-13 place-items-center rounded-full bg-brand-600 text-white shadow-glow ring-4 ring-white">
                   <Icon name={portal.cta.icon} className="size-6" />
                 </span>
-                {portal.cta.short}
+                {t(portal.cta.short)}
               </Link>
             </li>
             <li>
-              <TabLink href={portal.list.href} label={portal.list.label}>
+              <TabLink href={portal.list.href} label={t(portal.list.label)}>
                 <Icon name={portal.list.icon ?? "list"} className="size-6" />
               </TabLink>
             </li>
             <li>
-              <TabLink href={`${ROLE_HOME[role]}/map`} label="Map">
+              <TabLink href={`${ROLE_HOME[role]}/map`} label={t("Map")}>
                 <Icon name="map" className="size-6" />
               </TabLink>
             </li>
             <li>
-              <TabLink href={portal.alerts} label="Alerts">
+              <TabLink href={portal.alerts} label={t("Alerts")}>
                 <span className="relative">
                   <Icon name="bell" className="size-6" />
-                  {unread > 0 && <UnreadDot count={unread} className="-top-1.5 -right-2.5" />}
+                  {unread > 0 && <UnreadDot count={unread} text={badge} className="-top-1.5 -right-2.5 ring-white" />}
                 </span>
               </TabLink>
             </li>
@@ -248,12 +254,12 @@ export function AppNavbar({ name, role, unread }: { name: string; role: Role; un
   );
 }
 
-function UnreadDot({ count, className }: { count: number; className?: string }) {
+function UnreadDot({ text, className }: { count: number; text: string; className?: string }) {
   return (
     <span
-      className={`absolute grid h-5 min-w-5 place-items-center rounded-full bg-accent-400 px-1 text-[11px] font-bold text-brand-950 ring-2 ring-cream-100 ${className}`}
+      className={`absolute grid h-5 min-w-5 place-items-center rounded-full bg-accent-400 px-1 text-[11px] font-bold text-brand-950 ring-2 ${className}`}
     >
-      {count > 9 ? "9+" : count}
+      {text}
     </span>
   );
 }

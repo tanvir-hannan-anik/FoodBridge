@@ -1,6 +1,7 @@
 import type { DonationStatus } from "@/db/schema";
 import { FLOW, STATUS_META } from "@/lib/donations/meta";
-import { cn, formatDateTime } from "@/lib/utils";
+import { getI18n } from "@/lib/i18n-server";
+import { cn } from "@/lib/utils";
 
 type Event = { status: DonationStatus; note: string | null; createdAt: Date };
 
@@ -8,7 +9,8 @@ type Event = { status: DonationStatus; note: string | null; createdAt: Date };
  * Shows the fixed Created → Match → Assign → Pickup → In transit → Delivery → Complete path, with times for
  * the steps already reached. A cancelled/expired donation ends the line with that event.
  */
-export function DonationTimeline({ status, events }: { status: DonationStatus; events: Event[] }) {
+export async function DonationTimeline({ status, events }: { status: DonationStatus; events: Event[] }) {
+  const { t, dateTime } = await getI18n();
   // Latest event per step, except "Created" (the first PENDING; a cancelled match re-opens the donation later).
   const reached = new Map<DonationStatus, Event>();
   for (const e of events) if (e.status !== "PENDING" || !reached.has("PENDING")) reached.set(e.status, e);
@@ -51,16 +53,16 @@ export function DonationTimeline({ status, events }: { status: DonationStatus; e
             </span>
             <div className="min-w-0 pt-0.5">
               <p className={cn("text-sm font-semibold", done ? "text-brand-950" : "text-ink-500")}>
-                {step === "PENDING" ? "Created" : STATUS_META[step].label}
-                {isCurrent && <span className="sr-only"> (current step)</span>}
+                {step === "PENDING" ? t("Created") : t(STATUS_META[step].label)}
+                {isCurrent && <span className="sr-only"> {t("(current step)")}</span>}
               </p>
               {event && done ? (
                 <p className="text-xs text-ink-500">
-                  {formatDateTime(event.createdAt)}
-                  {event.note && <> · {event.note}</>}
+                  {dateTime(event.createdAt)}
+                  {event.note && <> · {t(event.note)}</>}
                 </p>
               ) : (
-                <p className="text-xs text-ink-500">{STATUS_META[step].description}</p>
+                <p className="text-xs text-ink-500">{t(STATUS_META[step].description)}</p>
               )}
             </div>
           </li>

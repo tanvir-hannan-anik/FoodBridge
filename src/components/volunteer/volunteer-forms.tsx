@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { registerVolunteer } from "@/app/actions/auth";
 import { acceptTask, updateVolunteerProfile } from "@/app/actions/volunteer";
+import { useI18n } from "@/components/i18n-provider";
 import { LocationPicker } from "@/components/map/location-picker";
 import { Alert, Button, Input, Textarea } from "@/components/ui";
 import { useFormAction } from "@/components/ui/use-form-action";
@@ -10,6 +11,7 @@ import { MAX_IMAGE_BYTES, type FormState } from "@/lib/validation";
 
 export function VolunteerRegisterForm() {
   const { state, action, onSubmit, pending } = useFormAction(registerVolunteer);
+  const { t } = useI18n();
   const e = state?.errors;
   return (
     <form action={action} onSubmit={onSubmit} className="space-y-4" noValidate>
@@ -54,12 +56,12 @@ export function VolunteerRegisterForm() {
             className="mt-0.5 size-4 shrink-0 rounded accent-brand-600"
             aria-invalid={e?.terms ? true : undefined}
           />
-          I will carry food hygienically, deliver it promptly and never sell or keep it.
+          {t("I will carry food hygienically, deliver it promptly and never sell or keep it.")}
         </label>
-        {e?.terms && <p className="mt-1 text-xs font-medium text-red-600">{e.terms[0]}</p>}
+        {e?.terms && <p className="mt-1 text-xs font-medium text-red-600">{t(e.terms[0])}</p>}
       </div>
       <Button type="submit" block size="lg" loading={pending}>
-        Create volunteer account
+        {t("Create volunteer account")}
       </Button>
     </form>
   );
@@ -76,6 +78,7 @@ type Profile = {
 
 export function VolunteerProfileForm({ profile }: { profile: Profile }) {
   const { state, action, onSubmit, pending } = useFormAction(updateVolunteerProfile);
+  const { t } = useI18n();
   const e = state?.errors;
   return (
     <form action={action} onSubmit={onSubmit} className="space-y-4" noValidate>
@@ -111,7 +114,7 @@ export function VolunteerProfileForm({ profile }: { profile: Profile }) {
         defaultValue={profile.point}
       />
       <Button type="submit" loading={pending} className="rounded-full px-6">
-        Save changes
+        {t("Save changes")}
       </Button>
     </form>
   );
@@ -119,11 +122,12 @@ export function VolunteerProfileForm({ profile }: { profile: Profile }) {
 
 export function AcceptTaskForm({ donationId }: { donationId: string }) {
   const { state, action, onSubmit, pending } = useFormAction(acceptTask.bind(null, donationId));
+  const { t } = useI18n();
   return (
     <form action={action} onSubmit={onSubmit} className="space-y-3">
       {state?.message && <Alert tone="error">{state.message}</Alert>}
       <Button type="submit" block size="lg" loading={pending} className="h-14 rounded-full text-lg">
-        Accept task
+        {t("Accept task")}
       </Button>
     </form>
   );
@@ -141,6 +145,7 @@ export function ProofForm({
 }) {
   const { state, action, onSubmit, pending } = useFormAction(serverAction);
   const [photoError, setPhotoError] = useState<string>();
+  const { t } = useI18n();
   const e = state?.errors;
 
   if (state?.success) return <Alert tone="success">{state.success}</Alert>;
@@ -168,7 +173,7 @@ export function ProofForm({
         }}
       />
       <Button type="submit" block size="lg" loading={pending} className="h-14 rounded-full text-lg">
-        {label}
+        {t(label)}
       </Button>
     </form>
   );

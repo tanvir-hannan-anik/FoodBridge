@@ -1,0 +1,32 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 800 800" width="100%" height="100%">
+  <!-- Royal Blue Background -->
+  <rect width="800" height="800" fill="#144D87" rx="36"/>
+  
+  <!-- Number 17 -->
+  <text x="50" y="225" font-family="'Outfit', 'Impact', sans-serif" font-weight="900" font-size="210" fill="#FFFFFF" letter-spacing="-4">17</text>
+  
+  <!-- PARTNERSHIPS FOR THE GOALS Text -->
+  <g fill="#FFFFFF" font-family="'Outfit', 'Impact', sans-serif" font-weight="900" font-size="70" letter-spacing="1">
+    <text x="250" y="130">PARTNERSHIPS</text>
+    <text x="250" y="215">FOR THE GOALS</text>
+  </g>
+  
+  <!-- Center: 5 Interlocking Rings Symbol -->
+  <!-- Calculated ring positions forming the classic SDG 17 mandala -->
+  <g fill="none" stroke="#FFFFFF" stroke-width="26" stroke-linecap="round" stroke-linejoin="round">
+    <!-- Top Ring -->
+    <circle cx="400" cy="465" r="110"/>
+    
+    <!-- Top Right Ring -->
+    <circle cx="505" cy="542" r="110"/>
+    
+    <!-- Bottom Right Ring -->
+    <circle cx="465" cy="665" r="110"/>
+    
+    <!-- Bottom Left Ring -->
+    <circle cx="335" cy="665" r="110"/>
+    
+    <!-- Top Left Ring -->
+    <circle cx="295" cy="542" r="110"/>
+  </g>
+</svg>

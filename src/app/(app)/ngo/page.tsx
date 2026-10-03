@@ -11,9 +11,14 @@ import { expireOverdueDonations } from "@/lib/donations/service";
 import { matchOpenNeeds } from "@/lib/requests/service";
 import { NGO_TYPE_LABEL } from "@/lib/ngo/meta";
 import { getNgoStats, listAvailableDonations, listNgoRequests } from "@/lib/ngo/service";
-import { formatNumber, greeting } from "@/lib/utils";
+import { getI18n } from "@/lib/i18n-server";
+import { rich } from "@/lib/i18n-rich";
+import { greeting } from "@/lib/utils";
 
-export const metadata: Metadata = { title: "NGO dashboard" };
+export async function generateMetadata(): Promise<Metadata> {
+  const { t } = await getI18n();
+  return { title: t("NGO dashboard") };
+}
 
 export default async function NgoDashboard({ searchParams }: PageProps<"/ngo">) {
   const ngo = await requireRole("ngo");
@@ -32,6 +37,7 @@ export default async function NgoDashboard({ searchParams }: PageProps<"/ngo">) 
   const available = nearby.length ? nearby : await listAvailableDonations(ngo.id, {}, 3);
   const active = requests.filter((r) => ["pending", "matched", "accepted", "delivered"].includes(r.stage)).slice(0, 5);
   const orgName = ngo.organizationName ?? ngo.name;
+  const { t, number } = await getI18n();
 
   return (
     <div className="space-y-6">
@@ -40,12 +46,18 @@ export default async function NgoDashboard({ searchParams }: PageProps<"/ngo">) 
           tone="warning"
           title={welcome ? "Thanks for registering! Your NGO is under review" : "Your NGO is under review"}
         >
-          Our team verifies every NGO before it can request food, usually within one working day. Meanwhile you can
-          browse donations and{" "}
-          <Link href="/profile" className="font-semibold underline">
-            complete your profile
-          </Link>
-          .
+          {rich(
+            t(
+              "Our team verifies every NGO before it can request food, usually within one working day. Meanwhile you can browse donations and {link}.",
+            ),
+            {
+              link: (
+                <Link href="/profile" className="font-semibold underline">
+                  {t("complete your profile")}
+                </Link>
+              ),
+            },
+          )}
         </Alert>
       )}
 
@@ -55,18 +67,19 @@ export default async function NgoDashboard({ searchParams }: PageProps<"/ngo">) 
         <div className="relative grid gap-8 p-6 sm:p-10 lg:grid-cols-[1fr_auto] lg:items-center">
           <div>
             <p className="text-xs font-semibold tracking-widest text-accent-300 uppercase">
-              {ngo.ngoType ? NGO_TYPE_LABEL[ngo.ngoType].split(" /")[0] : "NGO"} dashboard
+              {t("{type} dashboard", { type: t(ngo.ngoType ? NGO_TYPE_LABEL[ngo.ngoType] : "NGO").split(" /")[0] })}
               {verified && (
                 <span className="ml-2 rounded-full bg-brand-600 px-2 py-0.5 text-[10px] tracking-wider text-white">
-                  ✓ Verified
+                  ✓ {t("Verified")}
                 </span>
               )}
             </p>
             <h1 className="mt-3 font-display text-3xl leading-tight font-semibold sm:text-[2.6rem]">
-              {greeting()}, {orgName}
+              {t("{greeting}, {name}", { greeting: t(greeting()), name: orgName })}
             </h1>
             <p className="mt-2 max-w-lg text-brand-200">
-              {ngo.area ? `Serving ${ngo.area}. ` : ""}Find surplus food nearby and get it to the people you serve.
+              {ngo.area ? `${t("Serving {area}.", { area: ngo.area })} ` : ""}
+              {t("Find surplus food nearby and get it to the people you serve.")}
             </p>
             <div className="mt-7 flex flex-col gap-3 sm:flex-row">
               <Link
@@ -83,45 +96,46 @@ export default async function NgoDashboard({ searchParams }: PageProps<"/ngo">) 
                 >
                   <path d="M11 18a7 7 0 1 0 0-14 7 7 0 0 0 0 14ZM20 20l-3.5-3.5" strokeLinecap="round" />
                 </svg>
-                Find food
+                {t("Find food")}
               </Link>
               <Link
                 href={verified ? "/ngo/requests/new" : "/ngo/requests"}
                 className="inline-flex h-12 items-center justify-center rounded-full border border-cream-50/25 px-6 font-semibold text-cream-50 hover:bg-cream-50/10"
               >
-                {verified ? "Post a food request" : "My requests"}
+                {t(verified ? "Post a food request" : "My requests")}
               </Link>
             </div>
           </div>
           <div className="rounded-3xl border border-cream-50/10 bg-cream-50/5 p-6 lg:w-72">
-            <p className="text-sm text-brand-200">Meals distributed</p>
-            <p className="mt-1 font-display text-6xl font-semibold text-accent-300 tabular-nums">
-              {formatNumber(stats.meals)}
-            </p>
-            <p className="mt-3 text-xs leading-relaxed text-brand-300">From donations you marked as distributed.</p>
+            <p className="text-sm text-brand-200">{t("Meals distributed")}</p>
+            <p className="mt-1 font-display text-6xl font-semibold text-accent-300 tabular-nums">{number(stats.meals)}</p>
+            <p className="mt-3 text-xs leading-relaxed text-brand-300">{t("From donations you marked as distributed.")}</p>
           </div>
         </div>
       </section>
 
       <dl className="grid gap-4 sm:grid-cols-3">
         <Stat
-          label="Available donations"
-          value={stats.available}
-          hint="Open for requests right now"
+          label={t("Available donations")}
+          value={number(stats.available)}
+          hint={t("Open for requests right now")}
           tone="bg-accent-100 text-accent-700"
           icon="M11 18a7 7 0 1 0 0-14 7 7 0 0 0 0 14ZM20 20l-3.5-3.5"
         />
         <Stat
-          label="Active requests"
-          value={stats.activeRequests}
-          hint={`Pending, matched or on the way · ${stats.openNeeds} open food request${stats.openNeeds === 1 ? "" : "s"}`}
+          label={t("Active requests")}
+          value={number(stats.activeRequests)}
+          hint={`${t("Pending, matched or on the way")} · ${t(
+            stats.openNeeds === 1 ? "{n} open food request" : "{n} open food requests",
+            { n: stats.openNeeds },
+          )}`}
           tone="bg-sky-50 text-sky-700"
           icon="M12 6v6l4 2M21 12a9 9 0 1 1-18 0 9 9 0 0 1 18 0Z"
         />
         <Stat
-          label="Received donations"
-          value={stats.received}
-          hint="Delivered to your organisation"
+          label={t("Received donations")}
+          value={number(stats.received)}
+          hint={t("Delivered to your organisation")}
           tone="bg-brand-100 text-brand-700"
           icon="M3 10.5 12 3l9 7.5V20a1 1 0 0 1-1 1H4a1 1 0 0 1-1-1Z"
         />
@@ -131,9 +145,9 @@ export default async function NgoDashboard({ searchParams }: PageProps<"/ngo">) 
         title="Food received over time"
         description={
           <>
-            Counted when food is delivered to you.{" "}
+            {t("Counted when food is delivered to you.")}{" "}
             <Link href="/ngo/reports" className="font-semibold text-brand-700 underline">
-              See your report
+              {t("See your report")}
             </Link>
           </>
         }
@@ -152,15 +166,15 @@ export default async function NgoDashboard({ searchParams }: PageProps<"/ngo">) 
         <div className="mb-4 flex items-end justify-between gap-4">
           <div>
             <h2 className="font-display text-2xl font-semibold text-brand-950">
-              {nearby.length && ngo.area ? `Available near ${ngo.area}` : "Available now"}
+              {nearby.length && ngo.area ? t("Available near {area}", { area: ngo.area }) : t("Available now")}
             </h2>
-            <p className="text-sm text-ink-500">Soonest-expiring first.</p>
+            <p className="text-sm text-ink-500">{t("Soonest-expiring first.")}</p>
           </div>
           <Link
             href="/ngo/donations"
             className="shrink-0 rounded-full border border-brand-900/10 bg-white px-3.5 py-1.5 text-sm font-semibold text-brand-800 hover:bg-cream-100"
           >
-            See all
+            {t("See all")}
           </Link>
         </div>
         {available.length ? (
@@ -184,7 +198,7 @@ export default async function NgoDashboard({ searchParams }: PageProps<"/ngo">) 
               href="/ngo/requests"
               className="rounded-full border border-brand-900/10 px-3.5 py-1.5 text-sm font-semibold text-brand-800 hover:bg-cream-100"
             >
-              View all
+              {t("View all")}
             </Link>
           }
         />
@@ -192,7 +206,7 @@ export default async function NgoDashboard({ searchParams }: PageProps<"/ngo">) 
           <RequestList items={active} />
         ) : (
           <p className="px-6 py-10 text-center text-sm text-ink-500">
-            No active requests. Browse available food and request what you can serve.
+            {t("No active requests. Browse available food and request what you can serve.")}
           </p>
         )}
       </Card>
@@ -208,7 +222,7 @@ function Stat({
   icon,
 }: {
   label: string;
-  value: number;
+  value: string;
   hint: string;
   tone: string;
   icon: string;
@@ -233,7 +247,7 @@ function Stat({
           {label}
           <span className="block text-xs font-normal text-ink-500">{hint}</span>
         </dt>
-        <dd className="font-display text-3xl font-semibold text-brand-950 tabular-nums">{formatNumber(value)}</dd>
+        <dd className="font-display text-3xl font-semibold text-brand-950 tabular-nums">{value}</dd>
       </div>
     </Card>
   );

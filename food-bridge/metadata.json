@@ -1,0 +1,8 @@
+{
+  "name": "Food Bridge",
+  "description": "Connecting surplus food with people who need it. A mission-driven platform to bridge food waste and hunger in Bangladesh and beyond.",
+  "requestFramePermissions": [],
+  "majorCapabilities": [
+    "MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"
+  ]
+}

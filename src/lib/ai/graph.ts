@@ -3,6 +3,7 @@ import "server-only";
 import { Annotation, END, START, StateGraph } from "@langchain/langgraph";
 import * as z from "zod";
 import type { User } from "@/db/schema";
+import { translate } from "@/lib/i18n";
 import { getUserContext, type UserContext } from "./context";
 import type { KnowledgeDoc } from "./knowledge";
 import { aiEnabled, askStructured, type ChatTurn } from "./provider";
@@ -30,6 +31,8 @@ const State = Annotation.Root({
   docs: Annotation<KnowledgeDoc[]>(),
   context: Annotation<UserContext | null>(),
   result: Annotation<Omit<AssistantReply, "intent" | "aiUsed"> | null>(),
+  /** The user's interface language; replies follow it unless they clearly write in the other one. */
+  lang: Annotation<"en" | "bn">(),
 });
 type S = typeof State.State;
 
@@ -40,6 +43,13 @@ const BASE = `You are the FoodBridge assistant for the FoodWasteZero initiative 
 Be brief, warm and practical. Use British spelling and plain words. Answer in the language the user writes in (English or Bangla).
 You cannot take actions, change data, accept or allocate food, or decide whether food is safe; the platform's rules do that. If asked to, explain what the user can do instead.`;
 
+/** The shared instructions, plus a language hint for people using FoodBridge in Bangla. */
+const base = (lang: "en" | "bn" = "en") =>
+  lang === "bn"
+    ? `${BASE}
+The user is using FoodBridge in Bangla: reply in natural, simple Bangla (Bengali script) unless they clearly write in English. Keep food names, addresses and numbers as written.`
+    : BASE;
+
 const conversation = (s: S): ChatTurn[] => [...s.history.slice(-8), { role: "user", content: s.input }];
 
 /* ---------------------------------------------------------------- nodes */
@@ -48,7 +58,7 @@ async function classify(s: S): Promise<Partial<S>> {
   const { intent } = await askStructured(
     z.object({ intent: z.enum(["question", "donation_form", "request_form", "my_updates"]) }),
     {
-      system: `${BASE}
+      system: `${base(s.lang)}
 Classify the user's latest message:
 - donation_form: they describe food they want to donate, or ask to fill/post a donation
 - request_form: an NGO describing food it needs, or asking to create a food request
@@ -71,7 +81,7 @@ function retrieveDocs(s: S): Partial<S> {
 async function answer(s: S): Promise<Partial<S>> {
   const docs = s.docs.map((d, i) => `<doc index="${i}" title="${d.title}">\n${d.body}\n</doc>`).join("\n");
   const out = await askStructured(z.object({ answer: z.string(), usedDocs: z.array(z.number().int()) }), {
-    system: `${BASE}
+    system: `${base(s.lang)}
 The user is a ${s.user.role} called ${s.user.name.split(" ")[0]}. Today is ${today()}.
 Answer platform questions ONLY from these approved FoodWasteZero articles. If they don't cover it, say you're not sure and suggest contacting support@foodbridge.local. Keep it under 120 words; use short steps when explaining how to do something. List the indexes of the articles you used in usedDocs.
 <approved_docs>
@@ -84,9 +94,9 @@ ${docs}
 }
 
 /** Donation form draft from a donor's own words. Also used by the WhatsApp/Messenger integration. */
-export async function draftDonationFrom(messages: ChatTurn[]) {
+export async function draftDonationFrom(messages: ChatTurn[], lang: "en" | "bn" = "en") {
   return askStructured(z.object({ reply: z.string(), draft: donationDraftSchema }), {
-    system: `${BASE}
+    system: `${base(lang)}
 Turn the donor's description into a donation form draft. Today is ${today()}. Only fill fields the user actually stated or that follow directly (e.g. "cooked this morning" → preparedMinutesAgo). Use null when unknown; never invent quantities, times or addresses. Pick the closest category, unit and condition.
 List the required fields that are still missing in "missing" (food type, category, quantity, condition, prepared time, best-before, pickup time, pickup address).
 In "reply", summarise the draft in one or two sentences and ask for the missing details, reminding them to check the form before posting. Do not judge whether the food is safe; the form checks the safety rules.`,
@@ -95,9 +105,9 @@ In "reply", summarise the draft in one or two sentences and ask for the missing 
 }
 
 /** Food request draft from an NGO's own words. Also used by the WhatsApp/Messenger integration. */
-export async function draftNeedFrom(messages: ChatTurn[]) {
+export async function draftNeedFrom(messages: ChatTurn[], lang: "en" | "bn" = "en") {
   return askStructured(z.object({ reply: z.string(), draft: needDraftSchema }), {
-    system: `${BASE}
+    system: `${base(lang)}
 Turn the NGO's description of what it needs into a food request draft. Today is ${today()}. Only fill what the user stated; null when unknown. category null means any food is fine. Never ask for or include names or personal details of the people being served.
 List missing required fields (quantity, people to serve, area, needed-by time) in "missing". In "reply", summarise and ask for what's missing, reminding them to check the form before posting.`,
     messages,
@@ -105,12 +115,12 @@ List missing required fields (quantity, people to serve, area, needed-by time) i
 }
 
 async function draftDonation(s: S): Promise<Partial<S>> {
-  const out = await draftDonationFrom(conversation(s));
+  const out = await draftDonationFrom(conversation(s), s.lang);
   return { result: { reply: out.reply, donationDraft: out.draft satisfies DonationDraft } };
 }
 
 async function draftRequest(s: S): Promise<Partial<S>> {
-  const out = await draftNeedFrom(conversation(s));
+  const out = await draftNeedFrom(conversation(s), s.lang);
   return { result: { reply: out.reply, needDraft: out.draft satisfies NeedDraft } };
 }
 
@@ -126,7 +136,7 @@ async function organise(s: S): Promise<Partial<S>> {
   const list = ctx.items.map((i) => `${i.id} [${i.priority}] ${i.title}: ${i.detail}`).join("\n");
   const alerts = ctx.unread.map((u) => `- ${u.message}`).join("\n");
   const out = await askStructured(z.object({ summary: z.string(), actionIds: z.array(z.string()) }), {
-    system: `${BASE}
+    system: `${base(s.lang)}
 Help the user organise their work. Below are the things that need their attention (from the platform's rules) and their unread notifications. Write a short summary (max 80 words) of what's happening and what to do first. Then pick up to 5 action ids in the order they should be done (most urgent first, e.g. expiring food and waiting decisions first). Only use ids from the list.
 <actions>
 ${list || "(none)"}
@@ -171,14 +181,17 @@ const graph = new StateGraph(State)
 /* ------------------------------------------------------- no-AI help mode */
 
 /** Without an API key the assistant still helps: keyword routing, article excerpts and the rule-based to-do list. */
-async function runWithoutAi(user: User, input: string): Promise<AssistantReply> {
+async function runWithoutAi(user: User, input: string, lang: "en" | "bn"): Promise<AssistantReply> {
   const text = input.toLowerCase();
   if (/(what should i do|next|summar|alert|notification|update|todo|to-do|task)/.test(text)) {
     const ctx = await getUserContext(user);
     return {
       intent: "my_updates",
       aiUsed: false,
-      reply: ctx.items.length ? "Here’s what needs your attention:" : "You’re all caught up: nothing needs your attention right now.",
+      reply: translate(
+        lang,
+        ctx.items.length ? "Here’s what needs your attention:" : "You’re all caught up: nothing needs your attention right now.",
+      ),
       suggestions: ctx.items.slice(0, 6).map(({ title, detail, href, priority }) => ({ title, detail, href, priority })),
     };
   }
@@ -192,8 +205,8 @@ async function runWithoutAi(user: User, input: string): Promise<AssistantReply> 
 }
 
 /** Runs one assistant turn for a signed-in user. */
-export async function runAssistant(user: User, input: string, history: ChatTurn[]): Promise<AssistantReply> {
-  if (!aiEnabled()) return runWithoutAi(user, input);
-  const final = await graph.invoke({ user, input, history, docs: [], context: null, result: null }, { recursionLimit: 12 });
+export async function runAssistant(user: User, input: string, history: ChatTurn[], lang: "en" | "bn" = "en"): Promise<AssistantReply> {
+  if (!aiEnabled()) return runWithoutAi(user, input, lang);
+  const final = await graph.invoke({ user, input, history, docs: [], context: null, result: null, lang }, { recursionLimit: 12 });
   return { ...(final.result ?? { reply: "Sorry, I couldn’t work that out. Please try again." }), intent: final.intent, aiUsed: true };
 }

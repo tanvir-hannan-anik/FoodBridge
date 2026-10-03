@@ -6,6 +6,8 @@ import { getDb } from "@/db";
 import { donations, users, type User } from "@/db/schema";
 import { LIVE_STATUSES } from "@/lib/donations/meta";
 import { toPoint, type LatLng } from "@/lib/geo";
+import type { I18n } from "@/lib/i18n";
+import { getI18n } from "@/lib/i18n-server";
 import { listOpenTasks, listVolunteerTasks } from "@/lib/volunteer/service";
 import type { OverviewLayer, OverviewMapData, OverviewPoint } from "./meta";
 
@@ -128,16 +130,18 @@ const FRESH_POSITION_MS = 60 * 60_000;
  * Pickup, delivery point and volunteer of one delivery. `volunteer: "any"` (admins) shows the
  * volunteer's last known point; "fresh" (donor/NGO) only a recent device position, never a saved home base.
  */
-function deliveryPoints(d: Delivery, href: string, volunteerMode: "any" | "fresh") {
+function deliveryPoints(d: Delivery, href: string, volunteerMode: "any" | "fresh", { t }: I18n) {
   const points: OverviewPoint[] = [];
   const pickup = toPoint(d.pickupLat, d.pickupLng);
   const drop = toPoint(d.deliveryLat, d.deliveryLng);
-  if (pickup) points.push({ id: `pickup-${d.id}`, layer: "donation", point: pickup, title: `${d.foodType} · pickup`, subtitle: d.donorName, href });
-  if (drop) points.push({ id: `drop-${d.id}`, layer: "ngo", point: drop, title: `${d.ngoName ?? "NGO"} · delivery`, subtitle: d.foodType, href });
+  if (pickup) points.push({ id: `pickup-${d.id}`, layer: "donation", point: pickup, title: t("{name} · pickup", { name: d.foodType }), subtitle: d.donorName, href });
+  if (drop) {
+    points.push({ id: `drop-${d.id}`, layer: "ngo", point: drop, title: t("{name} · delivery", { name: d.ngoName ?? t("NGO") }), subtitle: d.foodType, href });
+  }
   const v = toPoint(d.volunteerLat, d.volunteerLng);
   const fresh = !!d.volunteerLocatedAt && Date.now() - d.volunteerLocatedAt.getTime() < FRESH_POSITION_MS;
   if (v && d.volunteerId && (volunteerMode === "any" || fresh)) {
-    points.push({ id: `vol-${d.id}`, layer: "volunteer", point: v, title: d.volunteerName ?? "Volunteer", subtitle: `Carrying ${d.foodType}`, href });
+    points.push({ id: `vol-${d.id}`, layer: "volunteer", point: v, title: d.volunteerName ?? t("Volunteer"), subtitle: t("Carrying {food}", { food: d.foodType }), href });
   }
   return points;
 }
@@ -154,6 +158,8 @@ function dedupe(points: OverviewPoint[]) {
 }
 
 export async function getOverviewMap(user: User): Promise<OverviewMapData> {
+  const i18n = await getI18n();
+  const tr = i18n.t;
   const me = toPoint(user.lat, user.lng);
   const points: OverviewPoint[] = [];
   const routes: LatLng[][] = [];
@@ -167,7 +173,11 @@ export async function getOverviewMap(user: User): Promise<OverviewMapData> {
         layer,
         point: { lat: u.lat!, lng: u.lng! },
         title: displayName(u),
-        subtitle: [u.area, u.status === "pending" ? "awaiting verification" : null, u.role === "volunteer" ? (u.available ? "available" : "offline") : null]
+        subtitle: [
+          u.area,
+          u.status === "pending" ? tr("awaiting verification") : null,
+          u.role === "volunteer" ? tr(u.available ? "available" : "offline") : null,
+        ]
           .filter(Boolean)
           .join(" · "),
         href: `/admin/users/${u.id}`,
@@ -175,10 +185,10 @@ export async function getOverviewMap(user: User): Promise<OverviewMapData> {
     }
     for (const f of food) {
       const p = toPoint(f.lat, f.lng);
-      if (p) points.push({ id: `food-${f.id}`, layer: "donation", point: p, title: f.foodType, subtitle: `Available · ${f.donorName}`, href: `/admin/donations/${f.id}` });
+      if (p) points.push({ id: `food-${f.id}`, layer: "donation", point: p, title: f.foodType, subtitle: tr("Available · {donor}", { donor: f.donorName }), href: `/admin/donations/${f.id}` });
     }
     for (const d of deliveries) {
-      points.push(...deliveryPoints(d, `/admin/donations/${d.id}`, "any"));
+      points.push(...deliveryPoints(d, `/admin/donations/${d.id}`, "any", i18n));
       const r = routeOf(d);
       if (r) routes.push(r);
     }
@@ -199,8 +209,8 @@ export async function getOverviewMap(user: User): Promise<OverviewMapData> {
           id: `user-${u.id}`,
           layer: "donor",
           point: home ? blur(p) : p,
-          title: home ? "Household donor" : displayName(u),
-          subtitle: [u.area, home ? "approximate area" : null].filter(Boolean).join(" · "),
+          title: home ? tr("Household donor") : displayName(u),
+          subtitle: [u.area, home ? tr("approximate area") : null].filter(Boolean).join(" · "),
           approximate: home,
         });
       } else {
@@ -210,18 +220,18 @@ export async function getOverviewMap(user: User): Promise<OverviewMapData> {
           id: `user-${u.id}`,
           layer: "volunteer",
           point: blur(p),
-          title: "Volunteer",
-          subtitle: [u.area, "available", "approximate area"].filter(Boolean).join(" · "),
+          title: tr("Volunteer"),
+          subtitle: [u.area, tr("available"), tr("approximate area")].filter(Boolean).join(" · "),
           approximate: true,
         });
       }
     }
     for (const f of food) {
       const p = toPoint(f.lat, f.lng);
-      if (p) points.push({ id: `food-${f.id}`, layer: "donation", point: p, title: f.foodType, subtitle: `${f.quantity} ${f.unit} · ${f.donorName}`, href: `/ngo/donations/${f.id}` });
+      if (p) points.push({ id: `food-${f.id}`, layer: "donation", point: p, title: f.foodType, subtitle: `${i18n.number(f.quantity)} ${tr(f.unit)} · ${f.donorName}`, href: `/ngo/donations/${f.id}` });
     }
     for (const d of deliveries) {
-      points.push(...deliveryPoints(d, `/ngo/donations/${d.id}`, "fresh"));
+      points.push(...deliveryPoints(d, `/ngo/donations/${d.id}`, "fresh", i18n));
       const r = routeOf(d);
       if (r) routes.push(r);
     }
@@ -241,12 +251,14 @@ export async function getOverviewMap(user: User): Promise<OverviewMapData> {
           id: `pickup-${t.id}`,
           layer: "donation",
           point: pickup,
-          title: `${t.donorName} · pickup`,
-          subtitle: `${t.foodType}${mine ? " · your task" : t.offerStatus === "OFFERED" ? " · assigned to you" : " · open"}`,
+          title: tr("{name} · pickup", { name: t.donorName }),
+          subtitle: `${t.foodType} · ${tr(mine ? "your task" : t.offerStatus === "OFFERED" ? "assigned to you" : "open")}`,
           href,
         });
       }
-      if (drop) points.push({ id: `drop-${t.id}`, layer: "ngo", point: drop, title: `${t.ngoName ?? "NGO"} · delivery`, subtitle: t.foodType, href });
+      if (drop) {
+        points.push({ id: `drop-${t.id}`, layer: "ngo", point: drop, title: tr("{name} · delivery", { name: t.ngoName ?? tr("NGO") }), subtitle: t.foodType, href });
+      }
       if (pickup && drop) routes.push([pickup, drop]);
     }
     return { role: user.role, me, points: dedupe(points), routes, layers: ["donation", "ngo"] };
@@ -256,10 +268,10 @@ export async function getOverviewMap(user: User): Promise<OverviewMapData> {
   const [mine, deliveries, ngos] = await Promise.all([availableFood({ donorId: user.id }), activeDeliveries({ donorId: user.id }), pinnedUsers(["ngo"])]);
   for (const f of mine) {
     const p = toPoint(f.lat, f.lng);
-    if (p) points.push({ id: `food-${f.id}`, layer: "donation", point: p, title: f.foodType, subtitle: "Waiting for an NGO", href: `/donor/donations/${f.id}` });
+    if (p) points.push({ id: `food-${f.id}`, layer: "donation", point: p, title: f.foodType, subtitle: tr("Waiting for an NGO"), href: `/donor/donations/${f.id}` });
   }
   for (const d of deliveries) {
-    points.push(...deliveryPoints(d, `/donor/donations/${d.id}`, "fresh"));
+    points.push(...deliveryPoints(d, `/donor/donations/${d.id}`, "fresh", i18n));
     const r = routeOf(d);
     if (r) routes.push(r);
   }

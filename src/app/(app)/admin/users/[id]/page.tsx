@@ -12,9 +12,12 @@ import { requireRole } from "@/lib/auth/dal";
 import { ROLE_LABEL } from "@/lib/auth/roles";
 import { DONOR_TYPE_LABEL, UNIT_SHORT } from "@/lib/donations/meta";
 import { NGO_TYPE_LABEL } from "@/lib/ngo/meta";
-import { formatDate, formatDateTime } from "@/lib/utils";
+import { getI18n } from "@/lib/i18n-server";
 
-export const metadata: Metadata = { title: "User · Admin" };
+export async function generateMetadata(): Promise<Metadata> {
+  const { t } = await getI18n();
+  return { title: t("User") };
+}
 
 const RECENT_TITLE = { donor: "Recent donations", ngo: "Donations received", volunteer: "Delivery tasks" } as const;
 
@@ -25,18 +28,19 @@ export default async function AdminUserPage({ params }: PageProps<"/admin/users/
   const user = await getAdminUser(id);
   if (!user) notFound();
   const role = user.role as "donor" | "ngo" | "volunteer";
+  const { t, date, dateTime, number } = await getI18n();
 
   return (
     <div className="space-y-6">
       <Link href={`/admin/users?role=${role}`} className="text-sm font-medium text-ink-500 hover:text-brand-800">
-        ← {ROLE_LABEL[role]}s
+        ← {t(`${ROLE_LABEL[role]}s`)}
       </Link>
 
       <Card>
         <CardBody className="space-y-5">
           <div className="flex flex-wrap items-start justify-between gap-4">
             <div>
-              <p className="text-xs font-semibold tracking-widest text-ink-500 uppercase">{ROLE_LABEL[role]}</p>
+              <p className="text-xs font-semibold tracking-widest text-ink-500 uppercase">{t(ROLE_LABEL[role])}</p>
               <h1 className="mt-1 font-display text-3xl font-semibold text-brand-950">
                 {role === "ngo" && user.organizationName ? user.organizationName : user.name}
               </h1>
@@ -56,16 +60,16 @@ export default async function AdminUserPage({ params }: PageProps<"/admin/users/
           <CardBody>
             <dl className="space-y-4">
               {role === "ngo" && <Detail label="Contact person">{user.name}</Detail>}
-              {role === "ngo" && <Detail label="Type">{user.ngoType ? NGO_TYPE_LABEL[user.ngoType] : "—"}</Detail>}
+              {role === "ngo" && <Detail label="Type">{user.ngoType ? t(NGO_TYPE_LABEL[user.ngoType]) : "—"}</Detail>}
               {role === "ngo" && <Detail label="Registration no.">{user.registrationNo ?? "—"}</Detail>}
-              {role === "ngo" && <Detail label="People served per day">{user.capacity ?? "—"}</Detail>}
-              {role === "donor" && <Detail label="Donor type">{user.donorType ? DONOR_TYPE_LABEL[user.donorType] : "—"}</Detail>}
+              {role === "ngo" && <Detail label="People served per day">{user.capacity !== null ? number(user.capacity) : "—"}</Detail>}
+              {role === "donor" && <Detail label="Donor type">{user.donorType ? t(DONOR_TYPE_LABEL[user.donorType]) : "—"}</Detail>}
               {role === "donor" && user.organizationName && <Detail label="Business">{user.organizationName}</Detail>}
-              {role === "volunteer" && <Detail label="Availability">{user.available ? "Available" : "Unavailable"}</Detail>}
+              {role === "volunteer" && <Detail label="Availability">{t(user.available ? "Available" : "Unavailable")}</Detail>}
               <Detail label="Area">{user.area ?? "—"}</Detail>
               <Detail label="Address">{user.address ?? "—"}</Detail>
               {user.description && <Detail label="About">{user.description}</Detail>}
-              <Detail label="Joined">{formatDate(user.createdAt)}</Detail>
+              <Detail label="Joined">{date(user.createdAt)}</Detail>
             </dl>
           </CardBody>
         </Card>
@@ -82,18 +86,18 @@ export default async function AdminUserPage({ params }: PageProps<"/admin/users/
                         {d.foodType}
                       </Link>
                       <span className="block text-xs text-ink-500">
-                        {d.quantity} {UNIT_SHORT[d.unit]}
+                        {number(d.quantity)} {t(UNIT_SHORT[d.unit])}
                       </span>
                     </Td>
                     <Td>
                       <StatusBadge status={d.status} />
                     </Td>
-                    <Td className="whitespace-nowrap text-ink-600">{formatDateTime(d.updatedAt)}</Td>
+                    <Td className="whitespace-nowrap text-ink-600">{dateTime(d.updatedAt)}</Td>
                   </tr>
                 ))}
               </Table>
             ) : (
-              <p className="px-6 py-8 text-center text-sm text-ink-500">Nothing yet.</p>
+              <p className="px-6 py-8 text-center text-sm text-ink-500">{t("Nothing yet.")}</p>
             )}
           </Card>
 
@@ -103,10 +107,10 @@ export default async function AdminUserPage({ params }: PageProps<"/admin/users/
               <ul className="divide-y divide-cream-200">
                 {user.log.map((l) => (
                   <li key={l.id} className="px-6 py-3 text-sm">
-                    <span className="font-semibold text-brand-950">{ADMIN_ACTION_LABEL[l.action] ?? l.action}</span>
+                    <span className="font-semibold text-brand-950">{t(ADMIN_ACTION_LABEL[l.action] ?? l.action)}</span>
                     <span className="text-ink-500">
                       {" "}
-                      · {formatDateTime(l.createdAt)}
+                      · {dateTime(l.createdAt)}
                       {l.actorName ? ` · ${l.actorName}` : ""}
                     </span>
                     {l.note && <span className="block text-ink-700">{l.note}</span>}
@@ -114,7 +118,7 @@ export default async function AdminUserPage({ params }: PageProps<"/admin/users/
                 ))}
               </ul>
             ) : (
-              <p className="px-6 py-8 text-center text-sm text-ink-500">No admin actions yet.</p>
+              <p className="px-6 py-8 text-center text-sm text-ink-500">{t("No admin actions yet.")}</p>
             )}
           </Card>
         </div>
@@ -123,10 +127,11 @@ export default async function AdminUserPage({ params }: PageProps<"/admin/users/
   );
 }
 
-function Detail({ label, children }: { label: string; children: ReactNode }) {
+async function Detail({ label, children }: { label: string; children: ReactNode }) {
+  const { t } = await getI18n();
   return (
     <div>
-      <dt className="text-xs font-semibold tracking-widest text-ink-500 uppercase">{label}</dt>
+      <dt className="text-xs font-semibold tracking-widest text-ink-500 uppercase">{t(label)}</dt>
       <dd className="mt-1 text-sm text-brand-950">{children}</dd>
     </div>
   );

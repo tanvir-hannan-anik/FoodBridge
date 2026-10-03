@@ -1,6 +1,7 @@
 "use client";
 
 import { changePassword, updateProfile } from "@/app/actions/profile";
+import { useI18n } from "@/components/i18n-provider";
 import { LocationPicker } from "@/components/map/location-picker";
 import { Alert, Button, Input } from "@/components/ui";
 import { useFormAction } from "@/components/ui/use-form-action";
@@ -17,6 +18,7 @@ type Profile = {
 
 export function ProfileForm({ profile }: { profile: Profile }) {
   const { state, action, onSubmit, pending } = useFormAction(updateProfile);
+  const { t } = useI18n();
   const e = state?.errors;
   return (
     <form action={action} onSubmit={onSubmit} className="space-y-4" noValidate>
@@ -53,7 +55,7 @@ export function ProfileForm({ profile }: { profile: Profile }) {
         defaultValue={profile.point}
       />
       <Button type="submit" loading={pending} className="rounded-full px-6">
-        Save changes
+        {t("Save changes")}
       </Button>
     </form>
   );
@@ -61,6 +63,7 @@ export function ProfileForm({ profile }: { profile: Profile }) {
 
 export function PasswordForm() {
   const { state, action, onSubmit, pending } = useFormAction(changePassword);
+  const { t } = useI18n();
   const e = state?.errors;
   return (
     <form
@@ -96,7 +99,7 @@ export function PasswordForm() {
         error={e?.confirmPassword}
       />
       <Button type="submit" variant="outline" loading={pending} className="rounded-full px-6">
-        Update password
+        {t("Update password")}
       </Button>
     </form>
   );

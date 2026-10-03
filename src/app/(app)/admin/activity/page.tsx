@@ -8,9 +8,12 @@ import { ACTIVITY_TARGETS, ADMIN_ACTION_LABEL, SECURITY_ACTIONS } from "@/lib/ad
 import { listActivity, type ActivityRow } from "@/lib/admin/service";
 import { requireRole } from "@/lib/auth/dal";
 import { ROLE_LABEL } from "@/lib/auth/roles";
-import { formatDateTime } from "@/lib/utils";
+import { getI18n } from "@/lib/i18n-server";
 
-export const metadata: Metadata = { title: "Activity log · Admin" };
+export async function generateMetadata(): Promise<Metadata> {
+  const { t } = await getI18n();
+  return { title: t("Activity log") };
+}
 
 const LIMIT = 100;
 const ACTIONS = Object.keys(ADMIN_ACTION_LABEL);
@@ -22,6 +25,7 @@ export default async function AdminActivityPage({ searchParams }: PageProps<"/ad
   const type = ACTIVITY_TARGETS.find((t) => t.value === params.type)?.value;
   const filters = parseAdminFilters(params, ACTIONS);
   const rows = await listActivity({ ...filters, type }, LIMIT);
+  const { t, dateTime } = await getI18n();
 
   const tabHref = (value?: string) => {
     const p = new URLSearchParams();
@@ -57,9 +61,9 @@ export default async function AdminActivityPage({ searchParams }: PageProps<"/ad
             <Table head={["When", "Action", "About", "By", "Note"]}>
               {rows.map((a) => (
                 <tr key={a.id}>
-                  <Td className="whitespace-nowrap text-ink-600">{formatDateTime(a.createdAt)}</Td>
+                  <Td className="whitespace-nowrap text-ink-600">{dateTime(a.createdAt)}</Td>
                   <Td className="text-ink-800">
-                    {ADMIN_ACTION_LABEL[a.action] ?? a.action}
+                    {t(ADMIN_ACTION_LABEL[a.action] ?? a.action)}
                     {SECURITY_ACTIONS.includes(a.action) && (
                       <Badge tone="warning" className="ml-2">
                         Security
@@ -70,8 +74,8 @@ export default async function AdminActivityPage({ searchParams }: PageProps<"/ad
                     <Target a={a} />
                   </Td>
                   <Td className="text-ink-700">
-                    {a.actorName ?? "System"}
-                    {a.actorRole && <span className="block text-xs text-ink-500">{ROLE_LABEL[a.actorRole]}</span>}
+                    {a.actorName ?? t("System")}
+                    {a.actorRole && <span className="block text-xs text-ink-500">{t(ROLE_LABEL[a.actorRole])}</span>}
                   </Td>
                   <Td className="max-w-xs text-ink-600">{a.note ?? "—"}</Td>
                 </tr>
@@ -90,7 +94,8 @@ export default async function AdminActivityPage({ searchParams }: PageProps<"/ad
 const TYPE_LABEL = Object.fromEntries(ACTIVITY_TARGETS.map((t) => [t.value, t.label])) as Record<ActivityRow["targetType"], string>;
 
 /** What the entry is about, linked to the admin page for it when there is one. */
-function Target({ a }: { a: ActivityRow }) {
+async function Target({ a }: { a: ActivityRow }) {
+  const { t } = await getI18n();
   const href =
     a.action === "data_export"
       ? null
@@ -103,7 +108,7 @@ function Target({ a }: { a: ActivityRow }) {
             : a.targetType === "need"
               ? "/admin/requests"
               : null;
-  const label = a.action === "data_export" ? "Report data" : (a.targetLabel ?? "Removed record");
+  const label = a.action === "data_export" ? t("Report data") : (a.targetLabel ?? t("Removed record"));
   return (
     <>
       {href ? (
@@ -113,7 +118,7 @@ function Target({ a }: { a: ActivityRow }) {
       ) : (
         <span className="text-ink-700">{label}</span>
       )}
-      <span className="block text-xs text-ink-500">{TYPE_LABEL[a.targetType]}</span>
+      <span className="block text-xs text-ink-500">{t(TYPE_LABEL[a.targetType])}</span>
     </>
   );
 }

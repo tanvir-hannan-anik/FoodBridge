@@ -1,8 +1,10 @@
 import { Skeleton } from "@/components/ui";
+import { getI18n } from "@/lib/i18n-server";
 
-export default function PortalLoading() {
+export default async function PortalLoading() {
+  const { t } = await getI18n();
   return (
-    <div role="status" aria-label="Loading">
+    <div role="status" aria-label={t("Loading…")}>
       <Skeleton className="h-8 w-48" />
       <Skeleton className="mt-2 h-4 w-72" />
       <div className="mt-8 grid grid-cols-2 gap-4 lg:grid-cols-4">

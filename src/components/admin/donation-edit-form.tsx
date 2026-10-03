@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { useI18n } from "@/components/i18n-provider";
 import { Alert, Button, Input, Select, Textarea } from "@/components/ui";
 import { useFormAction } from "@/components/ui/use-form-action";
 import type { Unit } from "@/db/schema";
@@ -35,6 +36,7 @@ export function DonationEditForm({
   values: Values;
 }) {
   const { state, action, onSubmit, pending } = useFormAction(serverAction);
+  const { t } = useI18n();
   const e = state?.errors;
   const [times, setTimes] = useState({ pickupAt: "", expiresAt: "", tzOffset: "0" });
   useEffect(() => {
@@ -81,7 +83,7 @@ export function DonationEditForm({
       </div>
       <Textarea label="Instructions" name="instructions" optional defaultValue={values.instructions ?? ""} error={e?.instructions} />
       <Button type="submit" loading={pending} className="rounded-full px-6">
-        Save changes
+        {t("Save changes")}
       </Button>
     </form>
   );

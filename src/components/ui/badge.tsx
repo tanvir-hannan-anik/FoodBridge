@@ -1,4 +1,7 @@
+"use client";
+
 import type { ComponentProps } from "react";
+import { useI18n } from "@/components/i18n-provider";
 import { cn } from "@/lib/utils";
 
 export type BadgeTone = "neutral" | "brand" | "info" | "warning" | "danger" | "success" | "violet";
@@ -13,7 +16,9 @@ const TONES: Record<BadgeTone, string> = {
   danger: "bg-red-50 text-red-700 ring-red-200",
 };
 
-export function Badge({ tone = "neutral", className, ...props }: ComponentProps<"span"> & { tone?: BadgeTone }) {
+/** Status pill. Plain-text children are translated. */
+export function Badge({ tone = "neutral", className, children, ...props }: ComponentProps<"span"> & { tone?: BadgeTone }) {
+  const { t } = useI18n();
   return (
     <span
       className={cn(
@@ -22,6 +27,8 @@ export function Badge({ tone = "neutral", className, ...props }: ComponentProps<
         className,
       )}
       {...props}
-    />
+    >
+      {typeof children === "string" ? t(children) : children}
+    </span>
   );
 }

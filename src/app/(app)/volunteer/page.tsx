@@ -7,10 +7,15 @@ import { Alert, Card, EmptyState } from "@/components/ui";
 import { parsePeriod } from "@/lib/analytics/meta";
 import { getActivity } from "@/lib/analytics/service";
 import { requireRole } from "@/lib/auth/dal";
-import { formatNumber, greeting } from "@/lib/utils";
+import { greeting } from "@/lib/utils";
+import { getI18n } from "@/lib/i18n-server";
+import { rich } from "@/lib/i18n-rich";
 import { getVolunteerStats, listOpenTasks, listVolunteerTasks, sweepVolunteerTasks } from "@/lib/volunteer/service";
 
-export const metadata: Metadata = { title: "Volunteer dashboard" };
+export async function generateMetadata(): Promise<Metadata> {
+  const { t } = await getI18n();
+  return { title: t("Volunteer dashboard") };
+}
 
 export default async function VolunteerDashboard({ searchParams }: PageProps<"/volunteer">) {
   const volunteer = await requireRole("volunteer");
@@ -27,31 +32,40 @@ export default async function VolunteerDashboard({ searchParams }: PageProps<"/v
   ]);
   const assigned = pickups.filter((t) => t.offerStatus === "OFFERED");
   const open = pickups.filter((t) => t.offerStatus !== "OFFERED");
+  const { t, number } = await getI18n();
 
   return (
     <div className="mx-auto max-w-3xl space-y-6">
       {!verified && (
         <Alert tone="warning" title={welcome ? "Thanks for signing up! Your account is under review" : "Your account is under review"}>
-          Our team verifies every volunteer before they see pickup addresses, usually within one working day. Meanwhile,{" "}
-          <Link href="/profile" className="font-semibold underline">
-            complete your profile
-          </Link>
-          .
+          {rich(
+            t(
+              "Our team verifies every volunteer before they see pickup addresses, usually within one working day. Meanwhile, {link}.",
+            ),
+            {
+              link: (
+                <Link href="/profile" className="font-semibold underline">
+                  {t("complete your profile")}
+                </Link>
+              ),
+            },
+          )}
         </Alert>
       )}
 
-      {declined && <Alert tone="info">Task declined. We’ve offered it to the next nearest volunteer.</Alert>}
-      {released && <Alert tone="info">Task handed back. Thanks for letting us know; another volunteer will take it.</Alert>}
+      {declined && <Alert tone="info">{t("Task declined. We’ve offered it to the next nearest volunteer.")}</Alert>}
+      {released && <Alert tone="info">{t("Task handed back. Thanks for letting us know; another volunteer will take it.")}</Alert>}
 
       <section className="grain relative overflow-hidden rounded-[1.75rem] bg-brand-950 p-5 text-cream-50 sm:p-8">
         <div aria-hidden className="absolute -top-24 -right-16 size-72 rounded-full bg-brand-600/35 blur-3xl" />
         <div className="relative">
-          <p className="text-xs font-semibold tracking-widest text-accent-300 uppercase">Volunteer</p>
+          <p className="text-xs font-semibold tracking-widest text-accent-300 uppercase">{t("Volunteer")}</p>
           <h1 className="mt-2 font-display text-2xl leading-tight font-semibold sm:text-4xl">
-            {greeting()}, {volunteer.name.split(" ")[0]}
+            {t("{greeting}, {name}", { greeting: t(greeting()), name: volunteer.name.split(" ")[0] })}
           </h1>
           <p className="mt-1 text-sm text-brand-200">
-            {volunteer.area ? `Covering ${volunteer.area}. ` : ""}Pick up surplus food and bring it to NGOs.
+            {volunteer.area ? `${t("Covering {area}.", { area: volunteer.area })} ` : ""}
+            {t("Pick up surplus food and bring it to NGOs.")}
           </p>
           <div className="mt-5 space-y-3">
             <AvailabilityToggle available={volunteer.available} disabled={!verified} />
@@ -61,13 +75,13 @@ export default async function VolunteerDashboard({ searchParams }: PageProps<"/v
       </section>
 
       <dl className="grid grid-cols-3 gap-3">
-        <Stat label="Active tasks" value={stats.active} />
-        <Stat label="Deliveries" value={stats.delivered} />
-        <Stat label="Meals delivered" value={stats.meals} highlight />
+        <Stat label={t("Active tasks")} value={number(stats.active)} />
+        <Stat label={t("Deliveries")} value={number(stats.delivered)} />
+        <Stat label={t("Meals delivered")} value={number(stats.meals)} highlight />
       </dl>
 
       <section>
-        <SectionTitle title="Current tasks" href="/volunteer/tasks" />
+        <SectionTitle title={t("Current tasks")} href="/volunteer/tasks" linkLabel={t("All tasks")} />
         {current.length ? (
           <TaskList items={current} />
         ) : (
@@ -82,14 +96,17 @@ export default async function VolunteerDashboard({ searchParams }: PageProps<"/v
 
       {assigned.length > 0 && (
         <section>
-          <SectionTitle title="Assigned to you" subtitle="You’re the nearest available volunteer. Accept or decline soon." />
+          <SectionTitle
+            title={t("Assigned to you")}
+            subtitle={t("You’re the nearest available volunteer. Accept or decline soon.")}
+          />
           <TaskList items={assigned} />
         </section>
       )}
 
       {verified && (
         <section>
-          <SectionTitle title="Open pickups" subtitle="No one nearby has taken these yet. Nearest first." />
+          <SectionTitle title={t("Open pickups")} subtitle={t("No one nearby has taken these yet. Nearest first.")} />
           {!volunteer.available ? (
             <Card>
               <EmptyState
@@ -122,7 +139,7 @@ export default async function VolunteerDashboard({ searchParams }: PageProps<"/v
   );
 }
 
-function SectionTitle({ title, subtitle, href }: { title: string; subtitle?: string; href?: string }) {
+function SectionTitle({ title, subtitle, href, linkLabel }: { title: string; subtitle?: string; href?: string; linkLabel?: string }) {
   return (
     <div className="mb-3 flex items-end justify-between gap-4">
       <div>
@@ -134,14 +151,14 @@ function SectionTitle({ title, subtitle, href }: { title: string; subtitle?: str
           href={href}
           className="shrink-0 rounded-full border border-brand-900/10 bg-white px-3.5 py-1.5 text-sm font-semibold text-brand-800 hover:bg-cream-100"
         >
-          All tasks
+          {linkLabel}
         </Link>
       )}
     </div>
   );
 }
 
-function Stat({ label, value, highlight }: { label: string; value: number; highlight?: boolean }) {
+function Stat({ label, value, highlight }: { label: string; value: string; highlight?: boolean }) {
   return (
     <Card className={highlight ? "border-brand-600 bg-brand-600 text-white" : undefined}>
       <div className="flex flex-col-reverse p-3 sm:p-5">
@@ -155,7 +172,7 @@ function Stat({ label, value, highlight }: { label: string; value: number; highl
               : "font-display text-2xl font-semibold text-brand-950 tabular-nums sm:text-3xl"
           }
         >
-          {formatNumber(value)}
+          {value}
         </dd>
       </div>
     </Card>

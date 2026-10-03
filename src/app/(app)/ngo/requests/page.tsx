@@ -9,9 +9,13 @@ import { UNIT_SHORT } from "@/lib/donations/meta";
 import { STAGE_META, STAGES, type Stage } from "@/lib/ngo/meta";
 import { listDistributions, listNgoRequests } from "@/lib/ngo/service";
 import { listNeeds, matchOpenNeeds } from "@/lib/requests/service";
-import { cn, formatDateTime, formatNumber } from "@/lib/utils";
+import { getI18n } from "@/lib/i18n-server";
+import { cn } from "@/lib/utils";
 
-export const metadata: Metadata = { title: "Food requests" };
+export async function generateMetadata(): Promise<Metadata> {
+  const { t } = await getI18n();
+  return { title: t("Food requests") };
+}
 
 export default async function NgoRequestsPage({ searchParams }: PageProps<"/ngo/requests">) {
   const ngo = await requireRole("ngo");
@@ -39,6 +43,7 @@ export default async function NgoRequestsPage({ searchParams }: PageProps<"/ngo/
     { requested: 0, matched: 0, delivered: 0, remaining: 0 },
   );
 
+  const { t, dateTime, number } = await getI18n();
   const tabs: { value: Stage | "all"; label: string; count: number }[] = [
     { value: "all", label: "All", count: needs.length },
     ...STAGES.map((s) => ({ value: s, label: STAGE_META[s].label, count: counts[s] })),
@@ -57,13 +62,13 @@ export default async function NgoRequestsPage({ searchParams }: PageProps<"/ngo/
                 href="/ngo/donations"
                 className="inline-flex h-12 items-center justify-center rounded-full border border-brand-900/15 bg-white px-5 font-semibold text-brand-900 hover:bg-cream-100"
               >
-                Find food
+                {t("Find food")}
               </Link>
               <Link
                 href="/ngo/requests/new"
                 className="inline-flex h-12 items-center justify-center gap-2 rounded-full bg-brand-600 px-6 font-semibold text-white shadow-glow hover:bg-brand-700"
               >
-                New request
+                {t("New request")}
               </Link>
             </div>
           )
@@ -72,7 +77,7 @@ export default async function NgoRequestsPage({ searchParams }: PageProps<"/ngo/
 
       {!verified && (
         <Alert tone="warning" title="Verification pending" className="mb-6">
-          You can post food requests once our team has verified your NGO.
+          {t("You can post food requests once our team has verified your NGO.")}
         </Alert>
       )}
 
@@ -86,21 +91,21 @@ export default async function NgoRequestsPage({ searchParams }: PageProps<"/ngo/
           ] as const
         ).map(([label, value]) => (
           <Card key={label} className="flex flex-col-reverse p-4 sm:p-5">
-            <dt className="text-xs font-medium text-ink-600 sm:text-sm">{label}</dt>
-            <dd className="font-display text-2xl font-semibold text-brand-950 tabular-nums sm:text-3xl">{formatNumber(value)}</dd>
+            <dt className="text-xs font-medium text-ink-600 sm:text-sm">{t(label)}</dt>
+            <dd className="font-display text-2xl font-semibold text-brand-950 tabular-nums sm:text-3xl">{number(value)}</dd>
           </Card>
         ))}
       </dl>
 
       <Card className="overflow-hidden">
         <div className="border-b border-cream-200 bg-cream-50 px-4 py-3 sm:px-6">
-          <nav aria-label="Filter requests" className="-mx-1 flex gap-1 overflow-x-auto px-1 pb-1 [scrollbar-width:none]">
-            {tabs.map((t) => {
-              const current = stage === t.value;
+          <nav aria-label={t("Filter requests")} className="-mx-1 flex gap-1 overflow-x-auto px-1 pb-1 [scrollbar-width:none]">
+            {tabs.map((tab) => {
+              const current = stage === tab.value;
               return (
                 <Link
-                  key={t.value}
-                  href={t.value === "all" ? "/ngo/requests" : `/ngo/requests?stage=${t.value}`}
+                  key={tab.value}
+                  href={tab.value === "all" ? "/ngo/requests" : `/ngo/requests?stage=${tab.value}`}
                   aria-current={current ? "page" : undefined}
                   className={cn(
                     "flex shrink-0 items-center gap-2 rounded-full border px-4 py-1.5 text-sm font-semibold",
@@ -109,26 +114,26 @@ export default async function NgoRequestsPage({ searchParams }: PageProps<"/ngo/
                       : "border-brand-900/10 bg-white text-ink-600 hover:bg-cream-100",
                   )}
                 >
-                  {t.label}
+                  {t(tab.label)}
                   <span
                     className={cn(
                       "rounded-full px-1.5 text-xs tabular-nums",
                       current ? "bg-accent-400 text-brand-950" : "bg-cream-200 text-ink-600",
                     )}
                   >
-                    {t.count}
+                    {number(tab.count)}
                   </span>
                 </Link>
               );
             })}
           </nav>
-          {stage !== "all" && <p className="mt-2 text-sm text-ink-500">{STAGE_META[stage].description}</p>}
+          {stage !== "all" && <p className="mt-2 text-sm text-ink-500">{t(STAGE_META[stage].description)}</p>}
         </div>
         {shown.length ? (
           <NeedList items={shown} />
         ) : (
           <EmptyState
-            title={stage === "all" ? "No food requests yet" : `No ${STAGE_META[stage].label.toLowerCase()} requests`}
+            title={stage === "all" ? "No food requests yet" : t("No requests at this stage: {stage}", { stage: t(STAGE_META[stage].label) })}
             description="Post what you need: food type, quantity, people and time. We’ll match available donations to it."
             action={
               verified && (
@@ -136,7 +141,7 @@ export default async function NgoRequestsPage({ searchParams }: PageProps<"/ngo/
                   href="/ngo/requests/new"
                   className="inline-flex h-11 items-center rounded-full bg-brand-600 px-6 text-sm font-semibold text-white shadow-glow hover:bg-brand-700"
                 >
-                  New request
+                  {t("New request")}
                 </Link>
               )
             }
@@ -149,7 +154,7 @@ export default async function NgoRequestsPage({ searchParams }: PageProps<"/ngo/
         {direct.length ? (
           <RequestList items={direct} />
         ) : (
-          <p className="px-6 py-8 text-center text-sm text-ink-500">None yet. Browse Find food to request a specific donation.</p>
+          <p className="px-6 py-8 text-center text-sm text-ink-500">{t("None yet. Browse Find food to request a specific donation.")}</p>
         )}
       </Card>
 
@@ -160,10 +165,10 @@ export default async function NgoRequestsPage({ searchParams }: PageProps<"/ngo/
             <table className="w-full text-left text-sm">
               <thead className="bg-cream-50 text-xs tracking-wider text-ink-500 uppercase">
                 <tr>
-                  <th className="px-6 py-3 font-semibold">Food</th>
-                  <th className="px-4 py-3 font-semibold">From</th>
-                  <th className="px-4 py-3 text-right font-semibold">Meals served</th>
-                  <th className="px-6 py-3 font-semibold">Completed</th>
+                  <th className="px-6 py-3 font-semibold">{t("Food")}</th>
+                  <th className="px-4 py-3 font-semibold">{t("Donor")}</th>
+                  <th className="px-4 py-3 text-right font-semibold">{t("Meals served")}</th>
+                  <th className="px-6 py-3 font-semibold">{t("Completed")}</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-cream-200">
@@ -174,19 +179,19 @@ export default async function NgoRequestsPage({ searchParams }: PageProps<"/ngo/
                         {d.foodType}
                       </Link>
                       <span className="block text-xs text-ink-500">
-                        {d.quantity} {UNIT_SHORT[d.unit]}
+                        {number(d.quantity)} {t(UNIT_SHORT[d.unit])}
                       </span>
                     </td>
                     <td className="px-4 py-3 text-ink-700">{d.donorName}</td>
-                    <td className="px-4 py-3 text-right font-semibold text-brand-950 tabular-nums">{formatNumber(d.meals)}</td>
-                    <td className="px-6 py-3 whitespace-nowrap text-ink-600">{formatDateTime(d.completedAt)}</td>
+                    <td className="px-4 py-3 text-right font-semibold text-brand-950 tabular-nums">{number(d.meals)}</td>
+                    <td className="px-6 py-3 whitespace-nowrap text-ink-600">{dateTime(d.completedAt)}</td>
                   </tr>
                 ))}
               </tbody>
             </table>
           </div>
         ) : (
-          <p className="px-6 py-8 text-center text-sm text-ink-500">Donations you mark as distributed appear here.</p>
+          <p className="px-6 py-8 text-center text-sm text-ink-500">{t("Donations you mark as distributed appear here.")}</p>
         )}
       </Card>
     </>

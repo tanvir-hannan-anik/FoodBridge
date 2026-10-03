@@ -16,9 +16,13 @@ import { getSafetyOverview } from "@/lib/safety/service";
 import { requireRole } from "@/lib/auth/dal";
 import { ROLE_LABEL } from "@/lib/auth/roles";
 import { STATUS_META } from "@/lib/donations/meta";
-import { cn, formatDateTime, formatNumber, formatRelative } from "@/lib/utils";
+import { getI18n } from "@/lib/i18n-server";
+import { cn } from "@/lib/utils";
 
-export const metadata: Metadata = { title: "Admin" };
+export async function generateMetadata(): Promise<Metadata> {
+  const { t } = await getI18n();
+  return { title: t("Admin") };
+}
 
 export default async function AdminHome({ searchParams }: PageProps<"/admin">) {
   const admin = await requireRole("admin");
@@ -32,12 +36,13 @@ export default async function AdminHome({ searchParams }: PageProps<"/admin">) {
     getAttentionQueue(),
   ]);
   const verifiable = pending.filter((u) => u.role !== "donor");
+  const { t, dateTime, relative, number } = await getI18n();
 
   return (
     <>
       <PageHeader
         eyebrow="Admin"
-        title={`Welcome, ${admin.name.split(" ")[0]}`}
+        title={t("Welcome, {name}", { name: admin.name.split(" ")[0] })}
         description="Verify partners, keep food moving and watch the platform’s health."
       />
 
@@ -46,7 +51,7 @@ export default async function AdminHome({ searchParams }: PageProps<"/admin">) {
           label="Total users"
           value={stats.users.total}
           href="/admin/users"
-          hint={`${stats.users.donors} donors · ${stats.users.ngos} NGOs · ${stats.users.volunteers} volunteers`}
+          hint={t("{d} donors · {n} NGOs · {v} volunteers", { d: stats.users.donors, n: stats.users.ngos, v: stats.users.volunteers })}
         />
         <Stat
           label="Active donations"
@@ -64,7 +69,7 @@ export default async function AdminHome({ searchParams }: PageProps<"/admin">) {
           label="Completed deliveries"
           value={stats.donations.delivered}
           href="/admin/donations?status=COMPLETED"
-          hint={`${stats.donations.completed} distributed by NGOs`}
+          hint={t("{n} distributed by NGOs", { n: stats.donations.completed })}
         />
       </dl>
 
@@ -74,16 +79,19 @@ export default async function AdminHome({ searchParams }: PageProps<"/admin">) {
 
       <section aria-labelledby="impact" className="mt-6 rounded-[1.75rem] bg-brand-950 p-6 text-cream-50 sm:p-8">
         <h2 id="impact" className="text-xs font-semibold tracking-widest text-accent-300 uppercase">
-          Impact
+          {t("Impact")}
         </h2>
         <dl className="mt-4 grid grid-cols-2 gap-6 sm:grid-cols-4">
           <Impact label="Meals served" value={stats.donations.meals} highlight />
           <Impact label="Meals delivered" value={stats.donations.mealsDelivered} />
           <Impact label="Donations posted" value={stats.donations.total} />
-          <Impact label="Expired (food lost)" value={stats.donations.expired} hint={`${stats.donations.cancelled} cancelled`} />
+          <Impact label="Expired (food lost)" value={stats.donations.expired} hint={t("{n} cancelled", { n: stats.donations.cancelled })} />
         </dl>
         <p className="mt-5 text-sm text-brand-200">
-          {stats.users.availableVolunteers} volunteers available now · {stats.users.suspended} suspended or deactivated accounts
+          {t("{a} volunteers available now · {s} suspended or deactivated accounts", {
+            a: stats.users.availableVolunteers,
+            s: stats.users.suspended,
+          })}
         </p>
       </section>
 
@@ -92,9 +100,9 @@ export default async function AdminHome({ searchParams }: PageProps<"/admin">) {
           title="Platform activity"
           description={
             <>
-              Food rescued and delivered over time.{" "}
+              {t("Food rescued and delivered over time.")}{" "}
               <Link href="/admin/reports" className="font-semibold text-brand-700 underline">
-                Open reports
+                {t("Open reports")}
               </Link>
             </>
           }
@@ -123,7 +131,10 @@ export default async function AdminHome({ searchParams }: PageProps<"/admin">) {
                 <Link href={`/admin/donations/${d.id}`} className="flex flex-wrap items-center gap-3 px-6 py-3 text-sm hover:bg-cream-50">
                   <span className="min-w-0 flex-1">
                     <span className="font-semibold text-brand-950">{d.foodType}</span>
-                    <span className="text-ink-500"> · {d.donorName} · {STATUS_META[d.status].label}</span>
+                    <span className="text-ink-500">
+                      {" "}
+                      · {d.donorName} · {t(STATUS_META[d.status].label)}
+                    </span>
                     {d.safetyNote && <span className="block text-xs text-ink-500">{d.safetyNote}</span>}
                   </span>
                   <SafetyBadge expiresAt={d.expiresAt} safetyFlag={d.safetyFlag} />
@@ -138,10 +149,10 @@ export default async function AdminHome({ searchParams }: PageProps<"/admin">) {
         <Card className="overflow-hidden lg:col-span-3">
           <CardHeader
             title="Waiting for verification"
-            description={verifiable.length ? `${verifiable.length} NGOs and volunteers to review` : "No one waiting"}
+            description={verifiable.length ? t("{n} NGOs and volunteers to review", { n: verifiable.length }) : "No one waiting"}
             action={
               <Link href="/admin/users?status=pending" className="text-sm font-semibold text-brand-700 hover:underline">
-                All pending
+                {t("All pending")}
               </Link>
             }
           />
@@ -154,11 +165,11 @@ export default async function AdminHome({ searchParams }: PageProps<"/admin">) {
                       {u.organizationName ?? u.name}
                     </Link>
                     <span className="block text-xs text-ink-500">
-                      {ROLE_LABEL[u.role]} · {u.email}
+                      {t(ROLE_LABEL[u.role])} · {u.email}
                     </span>
                   </Td>
                   <Td className="text-ink-700">{u.area ?? "—"}</Td>
-                  <Td className="whitespace-nowrap text-ink-600">{formatDateTime(u.createdAt)}</Td>
+                  <Td className="whitespace-nowrap text-ink-600">{dateTime(u.createdAt)}</Td>
                   <Td>
                     <UserActions userId={u.id} role={u.role as "ngo" | "volunteer"} status={u.status} compact />
                   </Td>
@@ -176,7 +187,7 @@ export default async function AdminHome({ searchParams }: PageProps<"/admin">) {
             description="Latest donation status changes."
             action={
               <Link href="/admin/activity" className="text-sm font-semibold text-brand-700 hover:underline">
-                Activity log
+                {t("Activity log")}
               </Link>
             }
           />
@@ -196,11 +207,11 @@ export default async function AdminHome({ searchParams }: PageProps<"/admin">) {
                       <Link href={`/admin/donations/${a.donationId}`} className="font-semibold text-brand-950 hover:text-brand-700">
                         {a.foodType}
                       </Link>{" "}
-                      → {STATUS_META[a.status].label}
+                      → {t(STATUS_META[a.status].label)}
                     </p>
                     <p className="text-xs text-ink-500">
-                      {formatRelative(a.createdAt)}
-                      {a.actorName ? ` · ${a.actorName}${a.actorRole ? ` (${ROLE_LABEL[a.actorRole]})` : ""}` : " · System"}
+                      {relative(a.createdAt)}
+                      {a.actorName ? ` · ${a.actorName}${a.actorRole ? ` (${t(ROLE_LABEL[a.actorRole])})` : ""}` : ` · ${t("System")}`}
                     </p>
                   </div>
                   <span className="ml-auto hidden shrink-0 sm:block">
@@ -217,9 +228,9 @@ export default async function AdminHome({ searchParams }: PageProps<"/admin">) {
 
       {pending.length > verifiable.length && (
         <p className="mt-4 text-sm text-ink-500">
-          <Badge tone="warning">{pending.length - verifiable.length}</Badge> other pending accounts.{" "}
+          <Badge tone="warning">{number(pending.length - verifiable.length)}</Badge> {t("other pending accounts.")}{" "}
           <Link href="/admin/users?status=pending" className="font-semibold text-brand-700 hover:underline">
-            Review
+            {t("Review")}
           </Link>
         </p>
       )}
@@ -227,29 +238,31 @@ export default async function AdminHome({ searchParams }: PageProps<"/admin">) {
   );
 }
 
-function Stat({ label, value, hint, href }: { label: string; value: number; hint: string; href: string }) {
+async function Stat({ label, value, hint, href }: { label: string; value: number; hint: string; href: string }) {
+  const { t, number } = await getI18n();
   return (
     <Link href={href} className="block rounded-card border border-cream-200 bg-white p-4 shadow-card hover:border-brand-500 sm:p-5">
       <div className="flex flex-col-reverse">
         <dt className="text-sm font-medium text-ink-600">
-          {label}
-          <span className="block text-xs font-normal text-ink-500">{hint}</span>
+          {t(label)}
+          <span className="block text-xs font-normal text-ink-500">{t(hint)}</span>
         </dt>
-        <dd className="font-display text-3xl font-semibold text-brand-950 tabular-nums">{formatNumber(value)}</dd>
+        <dd className="font-display text-3xl font-semibold text-brand-950 tabular-nums">{number(value)}</dd>
       </div>
     </Link>
   );
 }
 
-function Impact({ label, value, hint, highlight }: { label: string; value: number; hint?: string; highlight?: boolean }) {
+async function Impact({ label, value, hint, highlight }: { label: string; value: number; hint?: string; highlight?: boolean }) {
+  const { t, number } = await getI18n();
   return (
     <div className="flex flex-col-reverse">
       <dt className="text-sm text-brand-200">
-        {label}
+        {t(label)}
         {hint && <span className="block text-xs text-brand-300">{hint}</span>}
       </dt>
       <dd className={cn("font-display text-4xl font-semibold tabular-nums", highlight ? "text-accent-300" : "text-cream-50")}>
-        {formatNumber(value)}
+        {number(value)}
       </dd>
     </div>
   );

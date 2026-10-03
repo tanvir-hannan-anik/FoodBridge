@@ -3,6 +3,7 @@
 import "leaflet/dist/leaflet.css";
 import L from "leaflet";
 import { useEffect, useRef } from "react";
+import { useI18n } from "@/components/i18n-provider";
 import { DEFAULT_CENTER, type LatLng } from "@/lib/geo";
 
 /*
@@ -75,14 +76,15 @@ function escapeHtml(text: string) {
   return text.replace(/[&<>"']/g, (c) => `&#${c.charCodeAt(0)};`);
 }
 
-function popupHtml(m: MapMarker) {
+function popupHtml(m: MapMarker, open: string) {
   let html = `<strong>${escapeHtml(m.title)}</strong>`;
   if (m.subtitle) html += `<br><span style="color:#525b56">${escapeHtml(m.subtitle)}</span>`;
-  if (m.href && m.href.startsWith("/")) html += `<br><a href="${escapeHtml(m.href)}" style="font-weight:600;color:#166442">Open →</a>`;
+  if (m.href && m.href.startsWith("/")) html += `<br><a href="${escapeHtml(m.href)}" style="font-weight:600;color:#166442">${escapeHtml(open)} →</a>`;
   return html;
 }
 
 export default function MapCanvas({ markers, route, routes, onPick, fitKey, className }: MapCanvasProps) {
+  const { t } = useI18n();
   const el = useRef<HTMLDivElement>(null);
   const map = useRef<L.Map | null>(null);
   const layer = useRef<L.LayerGroup | null>(null);
@@ -142,7 +144,7 @@ export default function MapCanvas({ markers, route, routes, onPick, fitKey, clas
         draggable: mk.kind === "pin" && !!pickRef.current,
         keyboard: true,
       });
-      marker.bindPopup(popupHtml(mk));
+      marker.bindPopup(popupHtml(mk, t("Open details")));
       if (mk.kind === "pin") {
         marker.on("dragend", () => {
           const p = marker.getLatLng();
@@ -158,7 +160,7 @@ export default function MapCanvas({ markers, route, routes, onPick, fitKey, clas
       if (markers.length === 1) m.setView([markers[0].point.lat, markers[0].point.lng], Math.max(m.getZoom(), 15));
       else m.fitBounds(L.latLngBounds(markers.map((mk) => [mk.point.lat, mk.point.lng] as L.LatLngTuple)), { padding: [36, 36], maxZoom: 16 });
     }
-  }, [markers, route, routes, fitKey]);
+  }, [markers, route, routes, fitKey, t]);
 
-  return <div ref={el} className={className} role="application" aria-label="Map" tabIndex={0} />;
+  return <div ref={el} className={className} role="application" aria-label={t("Map")} tabIndex={0} />;
 }

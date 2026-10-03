@@ -1,6 +1,7 @@
 import { changeUserStatus } from "@/app/actions/admin";
 import { SubmitButton } from "@/components/ui";
 import type { Role, UserStatus } from "@/db/schema";
+import { getI18n } from "@/lib/i18n-server";
 
 const BLOCK_EFFECT: Record<Exclude<Role, "admin">, string> = {
   volunteer: "Assigned pickups go back to other volunteers.",
@@ -9,7 +10,7 @@ const BLOCK_EFFECT: Record<Exclude<Role, "admin">, string> = {
 };
 
 /** Approve / suspend / deactivate / reactivate, depending on the account's current status. */
-export function UserActions({
+export async function UserActions({
   userId,
   role,
   status,
@@ -21,19 +22,20 @@ export function UserActions({
   compact?: boolean;
 }) {
   const size = compact ? "sm" : "md";
+  const { t } = await getI18n();
   return (
     <div className="flex flex-wrap items-start gap-2">
       {status === "pending" && (
         <form action={changeUserStatus.bind(null, userId, "approve")}>
           <SubmitButton size={size} className="rounded-full px-4">
-            {role === "donor" ? "Approve" : "Verify"}
+            {t(role === "donor" ? "Approve" : "Verify")}
           </SubmitButton>
         </form>
       )}
       {(status === "suspended" || status === "deactivated") && (
         <form action={changeUserStatus.bind(null, userId, "reactivate")}>
           <SubmitButton size={size} className="rounded-full px-4">
-            Reactivate
+            {t("Reactivate")}
           </SubmitButton>
         </form>
       )}
@@ -41,7 +43,7 @@ export function UserActions({
         (status === "active" || status === "pending") && (
           <form action={changeUserStatus.bind(null, userId, "suspend")}>
             <SubmitButton size={size} variant="outline" className="rounded-full px-4">
-              {status === "pending" ? "Reject" : "Suspend"}
+              {t(status === "pending" ? "Reject" : "Suspend")}
             </SubmitButton>
           </form>
         )
@@ -59,7 +61,9 @@ export function UserActions({
   );
 }
 
-function BlockForm({ userId, action, label, effect }: { userId: string; action: "suspend" | "deactivate"; label: string; effect: string }) {
+async function BlockForm({ userId, action, label: raw, effect }: { userId: string; action: "suspend" | "deactivate"; label: string; effect: string }) {
+  const { t } = await getI18n();
+  const label = t(raw);
   return (
     <details className="group rounded-2xl border border-cream-200 bg-white open:w-full open:p-4">
       <summary className="inline-flex h-11 cursor-pointer list-none items-center rounded-full border border-brand-900/15 px-4 text-sm font-semibold text-brand-950 group-open:hidden hover:bg-cream-100">
@@ -67,10 +71,10 @@ function BlockForm({ userId, action, label, effect }: { userId: string; action: 
       </summary>
       <form action={changeUserStatus.bind(null, userId, action)} className="space-y-3">
         <p className="text-sm text-ink-700">
-          <span className="font-semibold text-brand-950">{label}:</span> the user can’t log in until reactivated. {effect}
+          <span className="font-semibold text-brand-950">{label}:</span> {t("the user can’t log in until reactivated.")} {t(effect)}
         </p>
         <label className="block text-sm font-semibold text-brand-950">
-          Reason <span className="font-normal text-ink-500">(optional, kept in the admin log)</span>
+          {t("Reason")} <span className="font-normal text-ink-500">{t("(optional, kept in the admin log)")}</span>
           <input
             name="reason"
             maxLength={200}
@@ -78,7 +82,7 @@ function BlockForm({ userId, action, label, effect }: { userId: string; action: 
           />
         </label>
         <SubmitButton variant="danger" className="rounded-full px-5">
-          Confirm {label.toLowerCase()}
+          {t("Confirm: {action}", { action: label.toLowerCase() })}
         </SubmitButton>
       </form>
     </details>

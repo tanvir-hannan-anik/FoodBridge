@@ -21,7 +21,6 @@ import {
   DONOR_TYPE_LABEL,
   FLOW,
   STATUS_META,
-  UNIT_LABEL,
   UNIT_SHORT,
 } from "@/lib/donations/meta";
 import { DEMO_STEPS, expireOverdueDonations } from "@/lib/donations/service";
@@ -30,9 +29,13 @@ import { getDeliveryView } from "@/lib/location/service";
 import { matchStage, UNMATCHABLE } from "@/lib/matching/meta";
 import { REQUEST_CLOSED_REASON, STAGE_META, requestStage } from "@/lib/ngo/meta";
 import { getNgoDonation } from "@/lib/ngo/service";
-import { cn, formatDateTime, formatRelative } from "@/lib/utils";
+import { getI18n } from "@/lib/i18n-server";
+import { cn } from "@/lib/utils";
 
-export const metadata: Metadata = { title: "Donation" };
+export async function generateMetadata(): Promise<Metadata> {
+  const { t } = await getI18n();
+  return { title: t("Donation") };
+}
 
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
@@ -55,23 +58,25 @@ export default async function NgoDonationPage({ params, searchParams }: PageProp
   const view = d.matchedToMe ? await getDeliveryView(ngo, d.id) : null;
   const match = d.request ? matchStage(d.request.status, d.request.allocatedAt, d.status) : null;
   const canCancelMatch = d.matchedToMe && d.request?.status === "ACCEPTED" && UNMATCHABLE.includes(d.status);
-  const away = formatDistance(distanceKm(toPoint(d.pickupLat, d.pickupLng), toPoint(ngo.lat, ngo.lng)));
+  const rawAway = formatDistance(distanceKm(toPoint(d.pickupLat, d.pickupLng), toPoint(ngo.lat, ngo.lng)));
+  const { t, dateTime, relative, number } = await getI18n();
+  const away = rawAway && t(rawAway);
 
   return (
     <>
       <Link href={d.request ? "/ngo/requests" : "/ngo/donations"} className="text-sm font-medium text-ink-500 hover:text-brand-800">
-        ← {d.request ? "Food requests" : "Available donations"}
+        ← {t(d.request ? "Food requests" : "Available donations")}
       </Link>
 
       {accepted && d.matchedToMe && (
         <Alert tone="success" title="Food accepted!" className="mt-4">
-          It’s matched to your request. The donor has been notified and a volunteer will be assigned to bring it.
+          {t("It’s matched to your request. The donor has been notified and a volunteer will be assigned to bring it.")}
         </Alert>
       )}
 
       {requested && d.request?.status === "PENDING" && (
         <Alert tone="success" title="Request sent!" className="mt-4">
-          The donor has been notified. You’ll get a notification when they respond.
+          {t("The donor has been notified. You’ll get a notification when they respond.")}
         </Alert>
       )}
 
@@ -89,17 +94,17 @@ export default async function NgoDonationPage({ params, searchParams }: PageProp
               </div>
               <p className="mt-2 flex flex-wrap gap-x-4 gap-y-1 text-sm text-brand-200">
                 <span>
-                  {d.quantity} {UNIT_SHORT[d.unit]}
+                  {number(d.quantity)} {t(UNIT_SHORT[d.unit])}
                 </span>
-                <span>~{d.mealsEstimate} meals</span>
-                <span>from {d.donorName}</span>
-                {away && <span>{away} from you</span>}
+                <span>{t("~{n} meals", { n: d.mealsEstimate })}</span>
+                <span>{t("from {name}", { name: d.donorName })}</span>
+                {away && <span>{t("{d} from you", { d: away })}</span>}
               </p>
             </div>
           </div>
 
           {d.matchedToMe && stepIndex > 0 && (
-            <ol aria-label="Delivery progress" className="mt-8 grid grid-cols-6 gap-1.5 sm:gap-2">
+            <ol aria-label={t("Delivery progress")} className="mt-8 grid grid-cols-6 gap-1.5 sm:gap-2">
               {FLOW.slice(1).map((step, i) => {
                 const done = i + 1 <= stepIndex;
                 const current = i + 1 === stepIndex;
@@ -112,9 +117,9 @@ export default async function NgoDonationPage({ params, searchParams }: PageProp
                         current ? "font-semibold text-accent-300" : done ? "text-cream-100" : "text-brand-300/70",
                       )}
                     >
-                      {STATUS_META[step].label}
+                      {t(STATUS_META[step].label)}
                     </span>
-                    <span className="sr-only">{done ? " (done)" : " (not yet)"}</span>
+                    <span className="sr-only">{done ? ` ${t("(done)")}` : ` ${t("(not yet)")}`}</span>
                   </li>
                 );
               })}
@@ -127,7 +132,7 @@ export default async function NgoDonationPage({ params, searchParams }: PageProp
         <div className="space-y-6 lg:col-span-2">
           {view && (
             <Card>
-              <CardHeader title="Delivery" description={deliveryHeadline(d.status, view.pendingOffer, d.volunteer?.name)} />
+              <CardHeader title="Delivery" description={t(deliveryHeadline(d.status, view.pendingOffer, d.volunteer?.name))} />
               <CardBody className="space-y-5">
                 {d.status !== "CANCELLED" && d.status !== "EXPIRED" && <DeliveryProgress status={d.status} pendingOffer={view.pendingOffer} />}
                 <DeliveryMap initial={view} />
@@ -148,17 +153,17 @@ export default async function NgoDonationPage({ params, searchParams }: PageProp
             <CardHeader title="Food information" />
             <CardBody>
               <dl className="grid gap-x-6 gap-y-5 sm:grid-cols-2">
-                <Detail label="Category">{CATEGORY_LABEL[d.category]}</Detail>
+                <Detail label="Category">{t(CATEGORY_LABEL[d.category])}</Detail>
                 <Detail label="Quantity">
-                  {d.quantity} {UNIT_SHORT[d.unit]} · ~{d.mealsEstimate} meals
+                  {number(d.quantity)} {t(UNIT_SHORT[d.unit])} · {t("~{n} meals", { n: d.mealsEstimate })}
                 </Detail>
-                <Detail label="Condition">{CONDITION_LABEL[d.condition].split(" — ")[0]}</Detail>
-                <Detail label="Prepared at">{formatDateTime(d.preparedAt)}</Detail>
+                <Detail label="Condition">{t(CONDITION_LABEL[d.condition]).split(" — ")[0]}</Detail>
+                <Detail label="Prepared at">{dateTime(d.preparedAt)}</Detail>
                 <Detail label="Best before">
-                  {formatDateTime(d.expiresAt)}
-                  {open && <span className="ml-1 text-ink-500">({formatRelative(d.expiresAt)})</span>}
+                  {dateTime(d.expiresAt)}
+                  {open && <span className="ml-1 text-ink-500">({relative(d.expiresAt)})</span>}
                 </Detail>
-                <Detail label="Ready for pickup">{formatDateTime(d.pickupAt)}</Detail>
+                <Detail label="Ready for pickup">{dateTime(d.pickupAt)}</Detail>
                 {d.instructions && (
                   <Detail label="Donor’s instructions" wide>
                     <span className="block rounded-xl bg-cream-100 px-4 py-3">{d.instructions}</span>
@@ -169,7 +174,7 @@ export default async function NgoDonationPage({ params, searchParams }: PageProp
                 // eslint-disable-next-line @next/next/no-img-element -- private, auth-checked image route
                 <img
                   src={`/ngo/donations/${d.id}/image`}
-                  alt={`Photo of ${d.foodType}`}
+                  alt={t("Photo of {food}", { food: d.foodType })}
                   loading="lazy"
                   className="mt-6 max-h-80 w-full rounded-2xl border border-cream-200 object-cover"
                 />
@@ -183,11 +188,11 @@ export default async function NgoDonationPage({ params, searchParams }: PageProp
               <dl className="grid gap-x-6 gap-y-5 sm:grid-cols-2">
                 <Detail label="Donor">
                   {d.donorName}
-                  {d.donorType && <span className="block text-ink-500">{DONOR_TYPE_LABEL[d.donorType].split(" (")[0]}</span>}
+                  {d.donorType && <span className="block text-ink-500">{t(DONOR_TYPE_LABEL[d.donorType]).split(" (")[0]}</span>}
                 </Detail>
                 <Detail label="Area">
                   {d.donorArea ?? "—"}
-                  {away && <span className="block text-ink-500">{away} from you (straight line)</span>}
+                  {away && <span className="block text-ink-500">{t("{d} from you (straight line)", { d: away })}</span>}
                 </Detail>
                 <Detail label="Pickup address" wide>
                   {d.pickupAddress}
@@ -197,7 +202,7 @@ export default async function NgoDonationPage({ params, searchParams }: PageProp
                     rel="noreferrer"
                     className="mt-1 block font-semibold text-brand-700 hover:underline"
                   >
-                    Open in Maps ↗
+                    {t("Open in Maps")} ↗
                   </a>
                 </Detail>
                 <Detail label="Contact" wide>
@@ -209,7 +214,7 @@ export default async function NgoDonationPage({ params, searchParams }: PageProp
                       </a>
                     </>
                   ) : (
-                    <span className="text-ink-500">Shared with you once the donor accepts your request.</span>
+                    <span className="text-ink-500">{t("Shared with you once the donor accepts your request.")}</span>
                   )}
                 </Detail>
               </dl>
@@ -221,7 +226,7 @@ export default async function NgoDonationPage({ params, searchParams }: PageProp
         <div className="space-y-6">
           {canRequest && !verified && (
             <Alert tone="warning" title="Verification pending">
-              You can request food once our team has verified your NGO.
+              {t("You can request food once our team has verified your NGO.")}
             </Alert>
           )}
 
@@ -232,7 +237,7 @@ export default async function NgoDonationPage({ params, searchParams }: PageProp
                 <RequestForm
                   action={requestFood.bind(null, d.id)}
                   maxQuantity={d.quantity}
-                  unitLabel={UNIT_LABEL[d.unit].split(" ")[0].toLowerCase()}
+                  unitLabel={t(UNIT_SHORT[d.unit])}
                   defaultPeople={d.mealsEstimate}
                   pickupAt={d.pickupAt.toISOString()}
                   expiresAt={d.expiresAt.toISOString()}
@@ -247,7 +252,7 @@ export default async function NgoDonationPage({ params, searchParams }: PageProp
               <CardBody className="space-y-4">
                 {d.request.needId && (
                   <Link href={`/ngo/requests/${d.request.needId}`} className="text-sm font-semibold text-brand-700 hover:underline">
-                    View your request →
+                    {t("View your request")} →
                   </Link>
                 )}
                 <MatchActions requestId={d.request.id} donationId={d.id} />
@@ -262,18 +267,18 @@ export default async function NgoDonationPage({ params, searchParams }: PageProp
                 {match && (
                   <div className="space-y-2">
                     <p className="flex items-center gap-2 text-xs font-semibold tracking-widest text-ink-500 uppercase">
-                      Match status <MatchBadge stage={match} />
+                      {t("Match status")} <MatchBadge stage={match} />
                     </p>
                     <MatchStepper stage={match} />
                   </div>
                 )}
                 <dl className="grid grid-cols-2 gap-4">
                   <Detail label="Quantity">
-                    {d.request.quantity} {UNIT_SHORT[d.unit]}
+                    {number(d.request.quantity)} {t(UNIT_SHORT[d.unit])}
                   </Detail>
-                  <Detail label="People">{d.request.people}</Detail>
+                  <Detail label="People">{number(d.request.people)}</Detail>
                   <Detail label="Preferred time" wide>
-                    {formatDateTime(d.request.preferredAt)}
+                    {dateTime(d.request.preferredAt)}
                   </Detail>
                   {d.request.notes && (
                     <Detail label="Notes" wide>
@@ -283,13 +288,13 @@ export default async function NgoDonationPage({ params, searchParams }: PageProp
                 </dl>
                 {REQUEST_CLOSED_REASON[d.request.status] && (
                   <p className="rounded-xl bg-cream-100 px-4 py-3 text-sm text-ink-700">
-                    {REQUEST_CLOSED_REASON[d.request.status]}
+                    {t(REQUEST_CLOSED_REASON[d.request.status]!)}
                   </p>
                 )}
                 {d.request.status === "PENDING" && (
                   <form action={withdrawRequest.bind(null, d.request.id, d.id)}>
                     <SubmitButton variant="outline" block className="rounded-full" pendingLabel="Withdrawing…">
-                      Withdraw request
+                      {t("Withdraw request")}
                     </SubmitButton>
                   </form>
                 )}
@@ -312,7 +317,7 @@ export default async function NgoDonationPage({ params, searchParams }: PageProp
                     {d.volunteer ? d.volunteer.name[0] : "V"}
                   </span>
                   <div className="text-sm">
-                    <p className="text-xs font-semibold tracking-widest text-ink-500 uppercase">Volunteer</p>
+                    <p className="text-xs font-semibold tracking-widest text-ink-500 uppercase">{t("Volunteer")}</p>
                     {d.volunteer ? (
                       <>
                         <p className="mt-0.5 font-semibold text-brand-950">{d.volunteer.name}</p>
@@ -321,25 +326,25 @@ export default async function NgoDonationPage({ params, searchParams }: PageProp
                         </a>
                       </>
                     ) : (
-                      <p className="mt-0.5 text-ink-500">A volunteer will be assigned soon.</p>
+                      <p className="mt-0.5 text-ink-500">{t("A volunteer will be assigned soon.")}</p>
                     )}
                   </div>
                 </div>
                 <p className="rounded-xl bg-cream-100 px-4 py-3 text-sm text-ink-700">
-                  <span className="font-semibold text-brand-950">{STATUS_META[d.status].label}.</span>{" "}
-                  {STATUS_META[d.status].description}
+                  <span className="font-semibold text-brand-950">{t(STATUS_META[d.status].label)}.</span>{" "}
+                  {t(STATUS_META[d.status].description)}
                 </p>
 
                 {d.deliveryAddress && (
                   <p className="text-sm text-ink-600">
-                    Delivering to <span className="font-medium text-brand-950">{d.deliveryAddress}</span>
-                    {d.deliverBy && <> by {formatDateTime(d.deliverBy)}</>}
+                    {t("Delivering to")} <span className="font-medium text-brand-950">{d.deliveryAddress}</span>
+                    {d.deliverBy && <> · {t("by {time}", { time: dateTime(d.deliverBy) })}</>}
                   </p>
                 )}
                 {(d.status === "PICKED_UP" || d.status === "IN_TRANSIT") && (
                   <form action={markReceived.bind(null, d.id)}>
                     <SubmitButton block className="rounded-full" pendingLabel="Confirming…">
-                      Confirm food received
+                      {t("Confirm food received")}
                     </SubmitButton>
                   </form>
                 )}
@@ -348,7 +353,7 @@ export default async function NgoDonationPage({ params, searchParams }: PageProp
                 )}
                 {d.status === "COMPLETED" && (
                   <Alert tone="success" title="Distributed">
-                    {d.mealsServed ?? d.mealsEstimate} meals served. Thank you!
+                    {t("{n} meals served. Thank you!", { n: d.mealsServed ?? d.mealsEstimate })}
                   </Alert>
                 )}
                 {canCancelMatch && d.request && <CancelMatchForm requestId={d.request.id} />}
@@ -358,11 +363,11 @@ export default async function NgoDonationPage({ params, searchParams }: PageProp
 
           {demoNext && (
             <section className="rounded-card border border-dashed border-accent-500/50 bg-accent-50 p-6">
-              <p className="text-xs font-semibold tracking-widest text-accent-700 uppercase">Demo mode</p>
-              <p className="mt-2 text-sm text-ink-700">Skip the volunteer login: play the volunteer’s part.</p>
+              <p className="text-xs font-semibold tracking-widest text-accent-700 uppercase">{t("Demo mode")}</p>
+              <p className="mt-2 text-sm text-ink-700">{t("Skip the volunteer login: play the volunteer’s part.")}</p>
               <form action={advanceDemoAsNgo.bind(null, d.id)} className="mt-4">
                 <SubmitButton block pendingLabel="Updating…" className="rounded-full">
-                  Move to “{STATUS_META[demoNext].label}”
+                  {t("Move to “{label}”", { label: t(STATUS_META[demoNext].label) })}
                 </SubmitButton>
               </form>
             </section>
@@ -373,10 +378,11 @@ export default async function NgoDonationPage({ params, searchParams }: PageProp
   );
 }
 
-function Detail({ label, wide, children }: { label: string; wide?: boolean; children: ReactNode }) {
+async function Detail({ label, wide, children }: { label: string; wide?: boolean; children: ReactNode }) {
+  const { t } = await getI18n();
   return (
     <div className={wide ? "col-span-full" : undefined}>
-      <dt className="text-xs font-semibold tracking-widest text-ink-500 uppercase">{label}</dt>
+      <dt className="text-xs font-semibold tracking-widest text-ink-500 uppercase">{t(label)}</dt>
       <dd className="mt-1.5 text-sm text-brand-950">{children}</dd>
     </div>
   );

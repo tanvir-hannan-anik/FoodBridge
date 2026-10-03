@@ -7,8 +7,12 @@ import { NeedForm } from "@/components/requests/need-form";
 import { Card, CardBody } from "@/components/ui";
 import { requireRole } from "@/lib/auth/dal";
 import { getNeed } from "@/lib/requests/service";
+import { getI18n } from "@/lib/i18n-server";
 
-export const metadata: Metadata = { title: "Edit food request" };
+export async function generateMetadata(): Promise<Metadata> {
+  const { t } = await getI18n();
+  return { title: t("Edit food request") };
+}
 
 export default async function EditNeedPage({ params }: PageProps<"/ngo/requests/[id]/edit">) {
   const ngo = await requireRole("ngo");
@@ -17,11 +21,12 @@ export default async function EditNeedPage({ params }: PageProps<"/ngo/requests/
   const need = await getNeed(ngo.id, id);
   if (!need) notFound();
   if (!need.editable) redirect(`/ngo/requests/${id}`);
+  const { t } = await getI18n();
 
   return (
     <div className="mx-auto max-w-2xl">
       <Link href={`/ngo/requests/${id}`} className="text-sm font-medium text-ink-500 hover:text-brand-800">
-        ← Back to request
+        ← {t("Back to request")}
       </Link>
       <div className="mt-4">
         <PageHeader eyebrow="Edit request" title="Update what you need" description="Saving withdraws any match waiting for you and looks again." />

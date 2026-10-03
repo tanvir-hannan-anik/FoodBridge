@@ -10,7 +10,7 @@ function useActive(href: string, exact?: boolean) {
   return exact ? pathname === href : pathname === href || pathname.startsWith(`${href}/`);
 }
 
-/** Pill link for the desktop portal navigation. */
+/** Pill link for the desktop portal navigation (on the night header). */
 export function NavLink({ href, exact, children }: { href: string; exact?: boolean; children: ReactNode }) {
   const active = useActive(href, exact);
   return (
@@ -19,7 +19,7 @@ export function NavLink({ href, exact, children }: { href: string; exact?: boole
       aria-current={active ? "page" : undefined}
       className={cn(
         "rounded-full px-4 py-1.5 text-sm font-medium",
-        active ? "bg-brand-950 text-cream-50" : "text-ink-600 hover:bg-cream-100 hover:text-brand-950",
+        active ? "bg-cream-50 text-night-950" : "text-mist-300 hover:bg-white/10 hover:text-cream-50",
       )}
     >
       {children}

@@ -3,12 +3,14 @@ import { AppNavbar } from "@/components/layout/app-navbar";
 import { requireUser } from "@/lib/auth/dal";
 import { countUnread } from "@/lib/notifications/service";
 import { runHousekeeping } from "@/lib/housekeeping";
+import { getI18n } from "@/lib/i18n-server";
 
 export default async function AppLayout({ children }: { children: React.ReactNode }) {
   const user = await requireUser();
   // Expire overdue food and match open NGO requests (throttled to once a minute).
   await runHousekeeping();
   const unread = await countUnread(user.id);
+  const { t } = await getI18n();
   return (
     <>
       <AppNavbar name={user.name} role={user.role} unread={unread} />
@@ -18,9 +20,11 @@ export default async function AppLayout({ children }: { children: React.ReactNod
       <AssistantLauncher role={user.role} />
       <footer className="hidden border-t border-brand-900/8 bg-cream-100 md:block">
         <div className="mx-auto flex max-w-6xl items-center justify-between px-6 py-5 text-xs text-ink-500">
-          <p>© {new Date().getFullYear()} FoodBridge · FoodWasteZero initiative</p>
           <p>
-            Need help? <span className="font-medium text-brand-800">support@foodbridge.local</span>
+            © {new Date().getFullYear()} FoodBridge · {t("FoodWasteZero initiative")}
+          </p>
+          <p>
+            {t("Need help?")} <span className="font-medium text-brand-800">support@foodbridge.local</span>
           </p>
         </div>
       </footer>

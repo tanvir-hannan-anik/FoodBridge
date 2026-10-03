@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { useFormAction } from "@/components/ui/use-form-action";
 import { registerDonor } from "@/app/actions/auth";
+import { useI18n } from "@/components/i18n-provider";
 import { Alert, Button, Input, Select } from "@/components/ui";
 import { DONOR_TYPE_LABEL, toOptions } from "@/lib/donations/meta";
 
@@ -11,6 +12,7 @@ const DONOR_TYPES = toOptions(DONOR_TYPE_LABEL);
 export function DonorRegisterForm() {
   const { state, action, onSubmit, pending } = useFormAction(registerDonor);
   const [donorType, setDonorType] = useState("");
+  const { t } = useI18n();
   const e = state?.errors;
 
   return (
@@ -95,13 +97,13 @@ export function DonorRegisterForm() {
             className="mt-0.5 size-4 shrink-0 rounded accent-brand-600"
             aria-invalid={e?.terms ? true : undefined}
           />
-          I will only donate food that is safe to eat, stored hygienically and within its best-before time.
+          {t("I will only donate food that is safe to eat, stored hygienically and within its best-before time.")}
         </label>
-        {e?.terms && <p className="mt-1 text-xs font-medium text-red-600">{e.terms[0]}</p>}
+        {e?.terms && <p className="mt-1 text-xs font-medium text-red-600">{t(e.terms[0])}</p>}
       </div>
 
       <Button type="submit" block size="lg" loading={pending}>
-        Create donor account
+        {t("Create donor account")}
       </Button>
     </form>
   );

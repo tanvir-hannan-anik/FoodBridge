@@ -1,17 +1,27 @@
 import type { ReactNode } from "react";
 import type { DonationStatus } from "@/db/schema";
 import { formatDistance } from "@/lib/geo";
-import { cn, formatDateTime, formatRelative } from "@/lib/utils";
+import { getI18n } from "@/lib/i18n-server";
+import { cn } from "@/lib/utils";
 import { DELIVERY_FLOW, DELIVERY_STEP_LABEL, taskStage } from "@/lib/volunteer/meta";
 
 type Step = (typeof DELIVERY_FLOW)[number];
 
 /** Where the delivery task is: Assigned → Accepted → Picked up → In transit → Delivered → Completed. */
-export function DeliveryProgress({ status, pendingOffer, dark }: { status: DonationStatus; pendingOffer: boolean; dark?: boolean }) {
+export async function DeliveryProgress({
+  status,
+  pendingOffer,
+  dark,
+}: {
+  status: DonationStatus;
+  pendingOffer: boolean;
+  dark?: boolean;
+}) {
+  const { t } = await getI18n();
   const stage = taskStage(status, pendingOffer);
   const reached: number = stage === "open" ? -1 : DELIVERY_FLOW.indexOf(stage as Step);
   return (
-    <ol aria-label="Delivery progress" className="grid grid-cols-6 gap-1.5">
+    <ol aria-label={t("Delivery progress")} className="grid grid-cols-6 gap-1.5">
       {DELIVERY_FLOW.map((step, i) => {
         const done = i < reached || stage === "completed";
         const current = i === reached && stage !== "completed";
@@ -39,7 +49,7 @@ export function DeliveryProgress({ status, pendingOffer, dark }: { status: Donat
                       : "text-ink-500",
               )}
             >
-              {DELIVERY_STEP_LABEL[step]}
+              {t(DELIVERY_STEP_LABEL[step])}
             </span>
           </li>
         );
@@ -48,7 +58,7 @@ export function DeliveryProgress({ status, pendingOffer, dark }: { status: Donat
   );
 }
 
-/** One sentence for donors and NGOs: what is happening with the delivery right now. */
+/** One sentence for donors and NGOs: what is happening with the delivery right now. English: callers pass it through t(). */
 export function deliveryHeadline(status: DonationStatus, pendingOffer: boolean, volunteerName?: string | null) {
   const who = volunteerName ?? "The volunteer";
   switch (taskStage(status, pendingOffer)) {
@@ -85,27 +95,29 @@ type TaskFacts = {
 };
 
 /** The delivery task at a glance: food, quantity, pickup and delivery locations, and the required time. */
-export function DeliveryTaskFacts({ t, children }: { t: TaskFacts; children?: ReactNode }) {
-  const away = formatDistance(t.distanceKm);
+export async function DeliveryTaskFacts({ t: task, children }: { t: TaskFacts; children?: ReactNode }) {
+  const { t, dateTime, relative } = await getI18n();
+  const away = formatDistance(task.distanceKm);
+  const by = task.deliverBy ?? task.expiresAt;
   return (
     <dl className="grid gap-x-6 gap-y-4 sm:grid-cols-2">
-      <Fact label="Food">
-        {t.foodType} · {t.quantity}
+      <Fact label={t("Food")}>
+        {task.foodType} · {t(task.quantity)}
       </Fact>
-      <Fact label="Required time">
-        Pick up from {formatDateTime(t.pickupAt)}
+      <Fact label={t("Required time")}>
+        {t("Pick up from {time}", { time: dateTime(task.pickupAt) })}
         <span className="block text-ink-500">
-          Deliver by {formatDateTime(t.deliverBy ?? t.expiresAt)} ({formatRelative(t.deliverBy ?? t.expiresAt)})
+          {t("Deliver by {time} ({relative})", { time: dateTime(by), relative: relative(by) })}
         </span>
       </Fact>
-      <Fact label="Pickup (donor)">
-        {t.donorName}
-        <span className="block text-ink-500">{t.pickupAddress}</span>
+      <Fact label={t("Pickup (donor)")}>
+        {task.donorName}
+        <span className="block text-ink-500">{task.pickupAddress}</span>
       </Fact>
-      <Fact label="Delivery (NGO)">
-        {t.ngoName ?? "NGO"}
-        {t.deliveryAddress && <span className="block text-ink-500">{t.deliveryAddress}</span>}
-        {away && <span className="block text-ink-500">{away} from the pickup</span>}
+      <Fact label={t("Delivery (NGO)")}>
+        {task.ngoName ?? t("NGO")}
+        {task.deliveryAddress && <span className="block text-ink-500">{task.deliveryAddress}</span>}
+        {away && <span className="block text-ink-500">{t("{d} from the pickup", { d: t(away) })}</span>}
       </Fact>
       {children}
     </dl>

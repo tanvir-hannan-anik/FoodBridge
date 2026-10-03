@@ -1,0 +1,73 @@
+@import "tailwindcss";
+
+@layer base {
+  :root {
+    --font-sans: 'Manrope', 'Hind Siliguri', -apple-system, BlinkMacSystemFont, sans-serif;
+    --font-display: 'Outfit', 'Hind Siliguri', sans-serif;
+    --font-mono: 'JetBrains Mono', monospace;
+  }
+
+  html {
+    scroll-behavior: smooth;
+  }
+
+  body {
+    font-family: var(--font-sans);
+    background-color: #0A0F0D;
+    color: #DFE4E0;
+    background-image: 
+      radial-gradient(ellipse 80% 50% at 50% -20%, rgba(16, 185, 129, 0.15) 0%, transparent 70%),
+      radial-gradient(circle 600px at 90% 40%, rgba(5, 150, 105, 0.06) 0%, transparent 60%);
+    background-attachment: fixed;
+    overflow-x: hidden;
+  }
+}
+
+.font-display {
+  font-family: 'Outfit', 'Hind Siliguri', sans-serif;
+}
+
+.font-body {
+  font-family: 'Manrope', 'Hind Siliguri', sans-serif;
+}
+
+.font-bengali {
+  font-family: 'Hind Siliguri', 'Manrope', sans-serif;
+}
+
+.font-mono-code {
+  font-family: 'JetBrains Mono', monospace;
+}
+
+@keyframes emeraldPulse {
+  0%, 100% {
+    opacity: 1;
+    transform: scale(1);
+    filter: drop-shadow(0 0 6px #10b981);
+  }
+  50% {
+    opacity: 0.45;
+    transform: scale(0.92);
+    filter: drop-shadow(0 0 2px #10b981);
+  }
+}
+
+.emerald-ping {
+  animation: emeraldPulse 2.8s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+}
+
+/* Custom subtle scrollbar */
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+::-webkit-scrollbar-track {
+  background: #0A0F0D;
+}
+::-webkit-scrollbar-thumb {
+  background: #1C211E;
+  border-radius: 9999px;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: #10B981;
+}

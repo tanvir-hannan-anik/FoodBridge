@@ -13,13 +13,17 @@ import { NGO_TYPE_LABEL } from "@/lib/ngo/meta";
 import { configuredChannels } from "@/lib/notifications/channels";
 import { listChannelLinks } from "@/lib/integrations/service";
 import { CHAT_CHANNELS } from "@/db/schema";
-import { formatDate } from "@/lib/utils";
+import { getI18n } from "@/lib/i18n-server";
 
-export const metadata: Metadata = { title: "Profile" };
+export async function generateMetadata(): Promise<Metadata> {
+  const { t } = await getI18n();
+  return { title: t("Profile & settings") };
+}
 
 export default async function ProfilePage() {
   const user = await requireUser();
   const chatLinks = await listChannelLinks(user.id);
+  const { t, date } = await getI18n();
   const point = user.lat !== null && user.lng !== null ? { lat: user.lat, lng: user.lng } : null;
   const initials = user.name
     .split(/\s+/)
@@ -37,7 +41,7 @@ export default async function ProfilePage() {
             {initials}
           </span>
           <div className="min-w-0">
-            <p className="text-xs font-semibold tracking-widest text-accent-300 uppercase">Profile &amp; settings</p>
+            <p className="text-xs font-semibold tracking-widest text-accent-300 uppercase">{t("Profile & settings")}</p>
             <h1 className="mt-1 truncate font-display text-3xl font-semibold">
               {user.organizationName && user.role === "ngo" ? user.organizationName : user.name}
             </h1>
@@ -45,13 +49,13 @@ export default async function ProfilePage() {
           </div>
         </div>
         <dl className="relative mt-6 grid grid-cols-2 gap-3 sm:grid-cols-3">
-          <Fact label="Account">{ROLE_LABEL[user.role]}</Fact>
-          {user.donorType && <Fact label="Donor type">{DONOR_TYPE_LABEL[user.donorType].split(" (")[0]}</Fact>}
+          <Fact label={t("Account")}>{t(ROLE_LABEL[user.role])}</Fact>
+          {user.donorType && <Fact label={t("Donor type")}>{t(DONOR_TYPE_LABEL[user.donorType]).split(" (")[0]}</Fact>}
           {(user.role === "ngo" || user.role === "volunteer") && (
-            <Fact label="Verification">{user.status === "active" ? "✓ Verified" : "Under review"}</Fact>
+            <Fact label={t("Verification")}>{user.status === "active" ? `✓ ${t("Verified")}` : t("Under review")}</Fact>
           )}
-          {user.role === "volunteer" && <Fact label="Availability">{user.available ? "Available" : "Unavailable"}</Fact>}
-          <Fact label="Member since">{formatDate(user.createdAt)}</Fact>
+          {user.role === "volunteer" && <Fact label={t("Availability")}>{t(user.available ? "Available" : "Unavailable")}</Fact>}
+          <Fact label={t("Member since")}>{date(user.createdAt)}</Fact>
         </dl>
       </section>
 

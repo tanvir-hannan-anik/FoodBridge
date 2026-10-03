@@ -2,6 +2,7 @@
 
 import dynamic from "next/dynamic";
 import { useEffect, useRef, useState } from "react";
+import { useI18n } from "@/components/i18n-provider";
 import { cn } from "@/lib/utils";
 import type { MapCanvasProps } from "./map-canvas";
 
@@ -9,13 +10,14 @@ import type { MapCanvasProps } from "./map-canvas";
 const MapCanvas = dynamic(() => import("./map-canvas"), { ssr: false, loading: () => <MapPlaceholder label="Loading map…" /> });
 
 function MapPlaceholder({ label }: { label: string }) {
+  const { t } = useI18n();
   return (
     <div className="grid size-full place-items-center bg-cream-100 text-sm text-ink-500">
       <span className="flex items-center gap-2">
         <svg aria-hidden viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="size-5 text-ink-500">
           <path d="M9 4 3 6v14l6-2 6 2 6-2V4l-6 2-6-2Zm0 0v14m6-12v14" strokeLinejoin="round" />
         </svg>
-        {label}
+        {t(label)}
       </span>
     </div>
   );

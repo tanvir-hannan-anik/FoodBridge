@@ -15,9 +15,12 @@ import { CATEGORY_LABEL, STATUS_META, UNIT_SHORT } from "@/lib/donations/meta";
 import { listAllocations } from "@/lib/matching/service";
 import { STAGE_META, STAGES } from "@/lib/ngo/meta";
 import { listAllNeeds } from "@/lib/requests/service";
-import { formatDateTime } from "@/lib/utils";
+import { getI18n } from "@/lib/i18n-server";
 
-export const metadata: Metadata = { title: "Requests · Admin" };
+export async function generateMetadata(): Promise<Metadata> {
+  const { t } = await getI18n();
+  return { title: t("Requests") };
+}
 
 const LIMIT = 100;
 
@@ -49,6 +52,7 @@ export default async function AdminRequestsPage({ searchParams }: PageProps<"/ad
 /** The matching history's ledger: which donation (or part of one) went to which NGO, and when. */
 async function AllocationsTable() {
   const rows = await listAllocations(LIMIT);
+  const { t, dateTime, number } = await getI18n();
   return (
     <Card className="overflow-hidden">
       {rows.length ? (
@@ -56,12 +60,12 @@ async function AllocationsTable() {
           <Table head={["When", "Donation", "Allocated to", "Quantity", "Delivery"]}>
             {rows.map((a) => (
               <tr key={a.id}>
-                <Td className="whitespace-nowrap text-ink-600">{formatDateTime(a.createdAt)}</Td>
+                <Td className="whitespace-nowrap text-ink-600">{dateTime(a.createdAt)}</Td>
                 <Td>
                   <Link href={`/admin/donations/${a.donationId}`} className="font-semibold text-brand-950 hover:text-brand-700">
                     {a.foodType}
                   </Link>
-                  <span className="block text-xs text-ink-500">{a.needId ? "System match" : "Direct request"}</span>
+                  <span className="block text-xs text-ink-500">{t(a.needId ? "System match" : "Direct request")}</span>
                 </Td>
                 <Td>
                   <Link href={`/admin/users/${a.ngoId}`} className="text-brand-950 hover:text-brand-700">
@@ -69,11 +73,11 @@ async function AllocationsTable() {
                   </Link>
                 </Td>
                 <Td className="text-ink-700">
-                  {a.quantity} {UNIT_SHORT[a.unit]}
-                  {a.people ? ` · ${a.people} people` : ""}
-                  {a.note && <span className="block text-xs text-ink-500">{a.note}</span>}
+                  {a.quantity !== null && `${number(a.quantity)} ${t(UNIT_SHORT[a.unit])}`}
+                  {a.people ? ` · ${t("{n} people", { n: a.people })}` : ""}
+                  {a.note && <span className="block text-xs text-ink-500">{t(a.note)}</span>}
                 </Td>
-                <Td className="text-ink-700">{STATUS_META[a.donationStatus].label}</Td>
+                <Td className="text-ink-700">{t(STATUS_META[a.donationStatus].label)}</Td>
               </tr>
             ))}
           </Table>
@@ -91,6 +95,7 @@ type Params = Record<string, string | string[] | undefined>;
 async function NeedsTable({ params }: { params: Params }) {
   const filters = parseAdminFilters(params, STAGES);
   const rows = await listAllNeeds({ ...filters, stage: filters.status }, LIMIT);
+  const { t, dateTime, number } = await getI18n();
   return (
     <Card className="overflow-hidden">
       <FilterBar
@@ -105,9 +110,9 @@ async function NeedsTable({ params }: { params: Params }) {
             {rows.map((n) => (
               <tr key={n.id}>
                 <Td>
-                  <p className="font-semibold text-brand-950">{n.foodType || (n.category ? CATEGORY_LABEL[n.category] : "Any food")}</p>
+                  <p className="font-semibold text-brand-950">{n.foodType || t(n.category ? CATEGORY_LABEL[n.category] : "Any food")}</p>
                   <span className="block text-xs text-ink-500">
-                    {n.quantity} {UNIT_SHORT[n.unit]} · {n.people} people · {n.area}
+                    {number(n.quantity)} {t(UNIT_SHORT[n.unit])} · {t("{n} people", { n: n.people })} · {n.area}
                   </span>
                 </Td>
                 <Td>
@@ -121,7 +126,7 @@ async function NeedsTable({ params }: { params: Params }) {
                 <Td className="min-w-52">
                   <NeedProgressBar progress={n.progress} />
                 </Td>
-                <Td className="whitespace-nowrap text-ink-600">{formatDateTime(n.neededBy)}</Td>
+                <Td className="whitespace-nowrap text-ink-600">{dateTime(n.neededBy)}</Td>
                 <Td>
                   {n.status === "OPEN" && n.stage !== "cancelled" && (
                     <form action={cancelNeedAsAdmin.bind(null, n.id)}>
@@ -146,6 +151,7 @@ async function NeedsTable({ params }: { params: Params }) {
 async function ClaimsTable({ params }: { params: Params }) {
   const filters = parseAdminFilters(params, REQUEST_STATUSES);
   const rows = await listAdminClaims(filters, LIMIT);
+  const { t, dateTime, number } = await getI18n();
   return (
     <Card className="overflow-hidden">
       <FilterBar
@@ -165,7 +171,11 @@ async function ClaimsTable({ params }: { params: Params }) {
                     {r.foodType}
                   </Link>
                   <span className="block text-xs text-ink-500">
-                    {r.quantity} {UNIT_SHORT[r.unit]} for {r.people} people · {r.needId ? "system match" : "direct"}
+                    {t("{qty} for {people}", {
+                      qty: `${number(r.quantity)} ${t(UNIT_SHORT[r.unit])}`,
+                      people: t("{n} people", { n: r.people }),
+                    })}{" "}
+                    · {t(r.needId ? "system match" : "direct")}
                   </span>
                 </Td>
                 <Td>
@@ -177,8 +187,8 @@ async function ClaimsTable({ params }: { params: Params }) {
                 <Td>
                   <Badge tone={REQUEST_STATUS_META[r.status].tone}>{REQUEST_STATUS_META[r.status].label}</Badge>
                 </Td>
-                <Td className="text-ink-700">{STATUS_META[r.donationStatus].label}</Td>
-                <Td className="whitespace-nowrap text-ink-600">{formatDateTime(r.createdAt)}</Td>
+                <Td className="text-ink-700">{t(STATUS_META[r.donationStatus].label)}</Td>
+                <Td className="whitespace-nowrap text-ink-600">{dateTime(r.createdAt)}</Td>
                 <Td>
                   <div className="flex flex-wrap gap-2">
                     {r.status === "MATCHED" && (

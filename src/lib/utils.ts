@@ -19,8 +19,11 @@ export function isId(...values: unknown[]) {
 
 const TIMEZONE = process.env.APP_TIMEZONE ?? "Asia/Dhaka";
 
-export function formatDateTime(date: Date) {
-  return new Intl.DateTimeFormat("en-GB", {
+/** Intl locale for the interface language: Bangla dates come out with Bangla month names and digits. */
+const locale = (lang: "en" | "bn") => (lang === "bn" ? "bn-BD" : "en-GB");
+
+export function formatDateTime(date: Date, lang: "en" | "bn" = "en") {
+  const text = new Intl.DateTimeFormat(locale(lang), {
     timeZone: TIMEZONE,
     day: "numeric",
     month: "short",
@@ -28,25 +31,36 @@ export function formatDateTime(date: Date) {
     minute: "2-digit",
     hour12: true,
   }).format(date);
+  // bn-BD keeps Latin "AM"/"PM"; use the Bangla day periods instead.
+  return lang === "bn" ? text.replace(/\bAM\b/, "পূর্বাহ্ণ").replace(/\bPM\b/, "অপরাহ্ণ") : text;
 }
 
-export function formatDate(date: Date) {
-  return new Intl.DateTimeFormat("en-GB", { timeZone: TIMEZONE, day: "numeric", month: "short", year: "numeric" }).format(
+export function formatDate(date: Date, lang: "en" | "bn" = "en") {
+  return new Intl.DateTimeFormat(locale(lang), { timeZone: TIMEZONE, day: "numeric", month: "short", year: "numeric" }).format(
     date,
   );
 }
 
-/** "in 3 h", "25 min ago" style relative time. */
-export function formatRelative(date: Date, now = new Date()) {
+const BN_DIGITS = "০১২৩৪৫৬৭৮৯";
+const bnDigits = (text: string) => text.replace(/[0-9]/g, (d) => BN_DIGITS[Number(d)]);
+
+/** "in 3 h", "25 min ago" style relative time ("৩ ঘণ্টা পরে", "২৫ মিনিট আগে" in Bangla). */
+export function formatRelative(date: Date, now = new Date(), lang: "en" | "bn" = "en") {
   const diffMin = Math.round((date.getTime() - now.getTime()) / 60000);
   const abs = Math.abs(diffMin);
+  if (lang === "bn") {
+    if (abs < 1) return "এইমাত্র";
+    const value =
+      abs < 60 ? `${abs} মিনিট` : abs < 60 * 48 ? `${Math.round(abs / 60)} ঘণ্টা` : `${Math.round(abs / 1440)} দিন`;
+    return bnDigits(diffMin > 0 ? `${value} পরে` : `${value} আগে`);
+  }
   const value = abs < 60 ? `${abs} min` : abs < 60 * 48 ? `${Math.round(abs / 60)} h` : `${Math.round(abs / 1440)} days`;
   if (abs < 1) return "just now";
   return diffMin > 0 ? `in ${value}` : `${value} ago`;
 }
 
-export function formatNumber(n: number) {
-  return new Intl.NumberFormat("en-US").format(n);
+export function formatNumber(n: number, lang: "en" | "bn" = "en") {
+  return lang === "bn" ? bnDigits(new Intl.NumberFormat("en-IN").format(n)) : new Intl.NumberFormat("en-US").format(n);
 }
 
 /** True when `date` is in the future but less than `minutes` away. */

@@ -4,11 +4,14 @@
  * FoodBridge design tokens — "warm editorial harvest".
  * Forest green brand, saffron accent (urgency + warmth), cream paper surfaces, ink neutrals.
  * Display type: Fraunces (soft serif). Body: Plus Jakarta Sans.
+ * Bangla falls through to Noto Serif Bengali (display) and Hind Siliguri (body) per glyph.
+ * Public pages sit on "night" surfaces (Dhaka after dark, lit by saffron); portals keep cream paper
+ * under a night header, so both read as one product.
  * Components use these tokens only (bg-brand-600, text-ink-700, rounded-card, shadow-card ...).
  */
 @theme {
-  --font-sans: var(--font-jakarta), ui-sans-serif, system-ui, sans-serif;
-  --font-display: var(--font-fraunces), ui-serif, Georgia, serif;
+  --font-sans: var(--font-jakarta), var(--font-hind), ui-sans-serif, system-ui, sans-serif;
+  --font-display: var(--font-fraunces), var(--font-serif-bn), ui-serif, Georgia, serif;
 
   --color-brand-50: #effaf3;
   --color-brand-100: #d8f3e2;
@@ -51,6 +54,19 @@
 
   --color-tomato-500: #e5573d;
 
+  /* Night surfaces (public site, portal header). Green-black, never pure black. */
+  --color-night-600: #2b4537;
+  --color-night-700: #1d3328;
+  --color-night-800: #14251c;
+  --color-night-850: #0f1d16;
+  --color-night-900: #0b1610;
+  --color-night-950: #060e0a;
+
+  /* Text on night surfaces: mist-300 for body, mist-400 for secondary (both pass AA on night-950/900). */
+  --color-mist-200: #d4e0d8;
+  --color-mist-300: #b4c6bb;
+  --color-mist-400: #93a99c;
+
   --radius-field: 0.75rem;
   --radius-card: 1.25rem;
 
@@ -71,6 +87,8 @@
   --animate-draw: draw 1.2s var(--ease-out-soft) both;
   --animate-flow: flow 1.4s linear infinite;
   --animate-beat: beat 1.8s ease-in-out infinite;
+  --animate-ember: ember 5s ease-in-out infinite;
+  --animate-ken: ken 24s ease-in-out infinite alternate;
 
   @keyframes rise {
     from {
@@ -127,6 +145,33 @@
   @keyframes flow {
     to {
       stroke-dashoffset: -24;
+    }
+  }
+  @keyframes ember {
+    0%,
+    100% {
+      opacity: 0.55;
+      transform: scale(1);
+    }
+    50% {
+      opacity: 0.9;
+      transform: scale(1.06);
+    }
+  }
+  @keyframes grow {
+    from {
+      transform: scaleX(0);
+    }
+    to {
+      transform: scaleX(1);
+    }
+  }
+  @keyframes ken {
+    from {
+      transform: scale(1.04);
+    }
+    to {
+      transform: scale(1.14) translate(-1.5%, -1%);
     }
   }
   @keyframes beat {
@@ -193,6 +238,41 @@
   }
 }
 
+/* Film grain for night surfaces (the paper grain above disappears on dark). */
+@utility grain-night {
+  position: relative;
+  isolation: isolate;
+  &::after {
+    content: "";
+    position: absolute;
+    inset: 0;
+    z-index: -1;
+    pointer-events: none;
+    opacity: 0.5;
+    mix-blend-mode: soft-light;
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='160' height='160'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.85' numOctaves='2' stitchTiles='stitch'/%3E%3CfeColorMatrix values='0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 0 0 0 0.16 0'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
+  }
+}
+
+/*
+ * Bangla: conjuncts break with letter-spacing, there is no italic or uppercase, and the script needs
+ * more line height. Applies to anything rendered inside lang="bn".
+ */
+:lang(bn) {
+  letter-spacing: 0 !important;
+  font-style: normal !important;
+  text-transform: none !important;
+  & h1,
+  & h2,
+  & h3,
+  & .font-display {
+    line-height: 1.3;
+  }
+  & p {
+    line-height: 1.75;
+  }
+}
+
 /* Dotted pattern used behind illustrations. */
 @utility dots {
   background-image: radial-gradient(currentColor 1px, transparent 1.4px);
@@ -208,6 +288,12 @@
     animation: rise linear both;
     animation-timeline: view();
     animation-range: entry 5% cover 28%;
+  }
+  /* Bar charts: the bar grows from the left as it scrolls into view. */
+  .reveal-bar {
+    animation: grow linear both;
+    animation-timeline: view();
+    animation-range: entry 10% cover 35%;
   }
   /* Use on an SVG path with pathLength="1". */
   .reveal-line {
@@ -243,6 +329,7 @@ details > summary::-webkit-details-marker {
     display: none;
   }
   .reveal,
+  .reveal-bar,
   .reveal-line {
     animation: none !important;
     stroke-dashoffset: 0 !important;

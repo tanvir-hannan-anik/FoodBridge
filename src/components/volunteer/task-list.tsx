@@ -4,7 +4,8 @@ import { FoodIcon } from "@/components/donor/food-icon";
 import { Badge, SubmitButton } from "@/components/ui";
 import { UNIT_SHORT } from "@/lib/donations/meta";
 import { formatDistance } from "@/lib/geo";
-import { cn, formatDateTime, formatRelative } from "@/lib/utils";
+import { getI18n } from "@/lib/i18n-server";
+import { cn } from "@/lib/utils";
 import { TASK_META, taskStage, type TaskStage } from "@/lib/volunteer/meta";
 import type { TaskListItem } from "@/lib/volunteer/service";
 
@@ -40,44 +41,47 @@ function Leg({ icon, label, place, detail }: { icon: string; label: string; plac
 }
 
 /** Tap-friendly task cards: food, pickup → drop-off with distances, pickup time and status. */
-export function TaskList({ items }: { items: TaskListItem[] }) {
+export async function TaskList({ items }: { items: TaskListItem[] }) {
+  const { t, dateTime, relative, number } = await getI18n();
   return (
     <ul className="space-y-3">
-      {items.map((t) => {
-        const stage = taskStage(t.status, t.offerStatus === "OFFERED");
+      {items.map((task) => {
+        const stage = taskStage(task.status, task.offerStatus === "OFFERED");
         const upcoming = stage === "assigned" || stage === "open" || stage === "accepted";
-        const toPickup = formatDistance(t.toPickupKm);
-        const leg = formatDistance(t.deliveryKm);
+        const toPickup = formatDistance(task.toPickupKm);
+        const leg = formatDistance(task.deliveryKm);
         return (
-          <li key={t.id}>
+          <li key={task.id}>
             <Link
-              href={`/volunteer/tasks/${t.id}`}
+              href={`/volunteer/tasks/${task.id}`}
               className="group block rounded-card border border-cream-200 bg-white p-4 shadow-card transition-colors hover:border-brand-500 sm:p-5"
             >
               <div className="flex items-start gap-3">
-                <FoodIcon category={t.category} />
+                <FoodIcon category={task.category} />
                 <div className="min-w-0 flex-1">
                   <div className="flex items-start justify-between gap-2">
-                    <p className="truncate font-semibold text-brand-950 group-hover:text-brand-700">{t.foodType}</p>
+                    <p className="truncate font-semibold text-brand-950 group-hover:text-brand-700">{task.foodType}</p>
                     <TaskBadge stage={stage} />
                   </div>
                   <p className="text-sm text-ink-500">
-                    {t.quantity} {UNIT_SHORT[t.unit]} · ~{t.mealsEstimate} meals
+                    {number(task.quantity)} {t(UNIT_SHORT[task.unit])} · {t("~{n} meals", { n: task.mealsEstimate })}
                   </p>
                 </div>
               </div>
               <div className="mt-3 grid gap-2 border-t border-cream-200 pt-3 sm:grid-cols-2">
                 <Leg
                   icon={PIN}
-                  label="Pick up from"
-                  place={t.donorName}
-                  detail={[toPickup && `${toPickup} from you`, t.donorArea ?? t.pickupAddress].filter(Boolean).join(" · ")}
+                  label={t("Pick up from")}
+                  place={task.donorName}
+                  detail={[toPickup && t("{d} from you", { d: t(toPickup) }), task.donorArea ?? task.pickupAddress]
+                    .filter(Boolean)
+                    .join(" · ")}
                 />
                 <Leg
                   icon={HOME}
-                  label="Deliver to"
-                  place={t.ngoName ?? "NGO"}
-                  detail={[leg && `${leg} ride`, t.ngoArea ?? t.ngoAddress].filter(Boolean).join(" · ")}
+                  label={t("Deliver to")}
+                  place={task.ngoName ?? t("NGO")}
+                  detail={[leg && t("{d} ride", { d: t(leg) }), task.ngoArea ?? task.ngoAddress].filter(Boolean).join(" · ")}
                 />
               </div>
               <p
@@ -88,10 +92,10 @@ export function TaskList({ items }: { items: TaskListItem[] }) {
               >
                 {upcoming ? (
                   <>
-                    Pickup <span className="font-semibold">{formatDateTime(t.pickupAt)}</span> ({formatRelative(t.pickupAt)})
+                    {t("Pickup")} <span className="font-semibold">{dateTime(task.pickupAt)}</span> ({relative(task.pickupAt)})
                   </>
                 ) : (
-                  <>Updated {formatDateTime(t.updatedAt)}</>
+                  <>{t("Updated {time}", { time: dateTime(task.updatedAt) })}</>
                 )}
               </p>
             </Link>
@@ -103,7 +107,8 @@ export function TaskList({ items }: { items: TaskListItem[] }) {
 }
 
 /** One big switch-like button: volunteers flip it on the move. */
-export function AvailabilityToggle({ available, disabled }: { available: boolean; disabled?: boolean }) {
+export async function AvailabilityToggle({ available, disabled }: { available: boolean; disabled?: boolean }) {
+  const { t } = await getI18n();
   return (
     <form action={toggleAvailability.bind(null, !available)}>
       <SubmitButton
@@ -122,9 +127,9 @@ export function AvailabilityToggle({ available, disabled }: { available: boolean
             aria-hidden
             className={cn("size-3 rounded-full", available ? "bg-brand-600 ring-4 ring-brand-600/20" : "bg-ink-300")}
           />
-          {available ? "Available for tasks" : "Unavailable"}
+          {t(available ? "Available for tasks" : "Unavailable")}
         </span>
-        <span className="text-sm font-medium text-ink-500">{available ? "Go offline" : "Go online"}</span>
+        <span className="text-sm font-medium text-ink-500">{t(available ? "Go offline" : "Go online")}</span>
       </SubmitButton>
     </form>
   );

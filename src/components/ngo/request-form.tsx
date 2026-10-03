@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { useI18n } from "@/components/i18n-provider";
 import { Alert, Button, Input, Textarea } from "@/components/ui";
 import { useFormAction } from "@/components/ui/use-form-action";
 import type { FormState } from "@/lib/validation";
@@ -26,6 +27,7 @@ export function RequestForm({
   expiresAt: string;
 }) {
   const { state, action, onSubmit, pending } = useFormAction(serverAction);
+  const { t, number } = useI18n();
   const e = state?.errors;
 
   // Times depend on the device timezone, so they're filled in after mount.
@@ -46,7 +48,7 @@ export function RequestForm({
       <input type="hidden" name="tzOffset" value={time.tzOffset} />
       <div className="grid grid-cols-2 gap-4">
         <Input
-          label={`Quantity (${unitLabel})`}
+          label={t("Quantity ({unit})", { unit: unitLabel })}
           name="quantity"
           type="number"
           inputMode="decimal"
@@ -54,7 +56,7 @@ export function RequestForm({
           step="any"
           max={maxQuantity}
           defaultValue={maxQuantity}
-          hint={`Up to ${maxQuantity} available`}
+          hint={t("Up to {n} available", { n: number(maxQuantity) })}
           error={e?.quantity}
         />
         <Input
@@ -88,7 +90,7 @@ export function RequestForm({
         error={e?.notes}
       />
       <Button type="submit" size="lg" block loading={pending} className="rounded-full">
-        {pending ? "Sending request…" : "Request this food"}
+        {t(pending ? "Sending request…" : "Request this food")}
       </Button>
     </form>
   );

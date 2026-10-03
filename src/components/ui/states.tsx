@@ -1,4 +1,7 @@
+"use client";
+
 import type { ReactNode } from "react";
+import { useI18n } from "@/components/i18n-provider";
 import { cn } from "@/lib/utils";
 
 export function EmptyState({
@@ -14,6 +17,7 @@ export function EmptyState({
   icon?: ReactNode;
   className?: string;
 }) {
+  const { t } = useI18n();
   return (
     <div className={cn("flex flex-col items-center px-6 py-12 text-center", className)}>
       <div className="mb-4 grid size-12 place-items-center rounded-full bg-brand-50 text-brand-600">
@@ -23,8 +27,8 @@ export function EmptyState({
           </svg>
         )}
       </div>
-      <h3 className="text-base font-semibold text-ink-900">{title}</h3>
-      {description && <p className="mt-1 max-w-sm text-sm text-ink-500">{description}</p>}
+      <h3 className="text-base font-semibold text-ink-900">{t(title)}</h3>
+      {description && <p className="mt-1 max-w-sm text-sm text-ink-500">{t(description)}</p>}
       {action && <div className="mt-5">{action}</div>}
     </div>
   );
@@ -41,6 +45,7 @@ export function ErrorState({
   action?: ReactNode;
   className?: string;
 }) {
+  const { t } = useI18n();
   return (
     <div role="alert" className={cn("flex flex-col items-center px-6 py-12 text-center", className)}>
       <div className="mb-4 grid size-12 place-items-center rounded-full bg-red-50 text-red-600">
@@ -48,8 +53,8 @@ export function ErrorState({
           <path d="M12 9v4m0 4h.01M10.3 3.9 1.8 18a2 2 0 0 0 1.7 3h17a2 2 0 0 0 1.7-3L13.7 3.9a2 2 0 0 0-3.4 0Z" />
         </svg>
       </div>
-      <h3 className="text-base font-semibold text-ink-900">{title}</h3>
-      <p className="mt-1 max-w-sm text-sm text-ink-500">{description}</p>
+      <h3 className="text-base font-semibold text-ink-900">{t(title)}</h3>
+      <p className="mt-1 max-w-sm text-sm text-ink-500">{t(description)}</p>
       {action && <div className="mt-5">{action}</div>}
     </div>
   );

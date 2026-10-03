@@ -1,3 +1,6 @@
+"use client";
+
+import { useI18n } from "@/components/i18n-provider";
 import { cn } from "@/lib/utils";
 
 export function Spinner({ className }: { className?: string }) {
@@ -10,10 +13,11 @@ export function Spinner({ className }: { className?: string }) {
 }
 
 export function Loading({ label = "Loading…", className }: { label?: string; className?: string }) {
+  const { t } = useI18n();
   return (
     <div role="status" className={cn("flex items-center justify-center gap-3 py-12 text-sm text-ink-500", className)}>
       <Spinner className="text-brand-600" />
-      {label}
+      {t(label)}
     </div>
   );
 }

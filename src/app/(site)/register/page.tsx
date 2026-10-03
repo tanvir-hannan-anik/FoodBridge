@@ -6,8 +6,12 @@ import { NgoRegisterForm } from "@/components/ngo/ngo-forms";
 import { VolunteerRegisterForm } from "@/components/volunteer/volunteer-forms";
 import { Badge, Card } from "@/components/ui";
 import { SELF_REGISTRATION } from "@/lib/auth/roles";
+import { getI18n } from "@/lib/i18n-server";
 
-export const metadata: Metadata = { title: "Create account" };
+export async function generateMetadata(): Promise<Metadata> {
+  const { t } = await getI18n();
+  return { title: t("Create account") };
+}
 
 const ROLE_CARDS = [
   {
@@ -29,17 +33,18 @@ const ROLE_CARDS = [
 
 export default async function RegisterPage({ searchParams }: PageProps<"/register">) {
   const { role } = await searchParams;
+  const { t } = await getI18n();
 
   if (role === "donor") {
     return (
       <AuthShell className="max-w-xl">
-        <Link href="/register" className="text-sm font-medium text-ink-500 hover:text-ink-800">
-          ← Choose a different account type
+        <Link href="/register" className="text-sm font-medium text-mist-300 hover:text-cream-50">
+          {t("← Choose a different account type")}
         </Link>
         <Card className="mt-4 p-6 sm:p-8">
           <Badge tone="brand">Donor account</Badge>
-          <h1 className="mt-3 font-display text-3xl font-semibold text-brand-950">Start donating food</h1>
-          <p className="mt-1 text-sm text-ink-500">Takes about a minute. You can donate right after signing up.</p>
+          <h1 className="mt-3 font-display text-3xl font-semibold text-brand-950">{t("Start donating food")}</h1>
+          <p className="mt-1 text-sm text-ink-500">{t("Takes about a minute. You can donate right after signing up.")}</p>
           <div className="mt-6">
             <DonorRegisterForm />
           </div>
@@ -52,15 +57,16 @@ export default async function RegisterPage({ searchParams }: PageProps<"/registe
   if (role === "ngo") {
     return (
       <AuthShell className="max-w-2xl">
-        <Link href="/register" className="text-sm font-medium text-ink-500 hover:text-ink-800">
-          ← Choose a different account type
+        <Link href="/register" className="text-sm font-medium text-mist-300 hover:text-cream-50">
+          {t("← Choose a different account type")}
         </Link>
         <Card className="mt-4 p-6 sm:p-8">
           <Badge tone="brand">NGO account</Badge>
-          <h1 className="mt-3 font-display text-3xl font-semibold text-brand-950">Receive surplus food</h1>
+          <h1 className="mt-3 font-display text-3xl font-semibold text-brand-950">{t("Receive surplus food")}</h1>
           <p className="mt-1 text-sm text-ink-500">
-            Register your organisation. Our team verifies every NGO, usually within one working day. You can browse
-            donations meanwhile.
+            {t(
+              "Register your organisation. Our team verifies every NGO, usually within one working day. You can browse donations meanwhile.",
+            )}
           </p>
           <div className="mt-6">
             <NgoRegisterForm />
@@ -74,15 +80,16 @@ export default async function RegisterPage({ searchParams }: PageProps<"/registe
   if (role === "volunteer") {
     return (
       <AuthShell className="max-w-xl">
-        <Link href="/register" className="text-sm font-medium text-ink-500 hover:text-ink-800">
-          ← Choose a different account type
+        <Link href="/register" className="text-sm font-medium text-mist-300 hover:text-cream-50">
+          {t("← Choose a different account type")}
         </Link>
         <Card className="mt-4 p-6 sm:p-8">
           <Badge tone="brand">Volunteer account</Badge>
-          <h1 className="mt-3 font-display text-3xl font-semibold text-brand-950">Deliver food to people in need</h1>
+          <h1 className="mt-3 font-display text-3xl font-semibold text-brand-950">{t("Deliver food to people in need")}</h1>
           <p className="mt-1 text-sm text-ink-500">
-            Pick up surplus food from donors and bring it to NGOs. Our team verifies every volunteer, usually within one
-            working day.
+            {t(
+              "Pick up surplus food from donors and bring it to NGOs. Our team verifies every volunteer, usually within one working day.",
+            )}
           </p>
           <div className="mt-6">
             <VolunteerRegisterForm />
@@ -95,8 +102,8 @@ export default async function RegisterPage({ searchParams }: PageProps<"/registe
 
   return (
     <AuthShell className="max-w-3xl">
-      <h1 className="font-display text-3xl font-semibold text-brand-950 sm:text-4xl">Create your FoodBridge account</h1>
-      <p className="mt-1 text-ink-500">Choose how you want to help. Each role has its own portal.</p>
+      <h1 className="font-display text-3xl font-semibold text-cream-50 sm:text-4xl">{t("Create your FoodBridge account")}</h1>
+      <p className="mt-1 text-mist-300">{t("Choose how you want to help. Each role has its own portal.")}</p>
 
       <ul className="mt-8 grid gap-4 sm:grid-cols-3">
         {ROLE_CARDS.map((c) => {
@@ -105,15 +112,15 @@ export default async function RegisterPage({ searchParams }: PageProps<"/registe
             <li key={c.role}>
               <Link
                 href={`/register?role=${c.role}`}
-                className="group flex h-full flex-col rounded-card border border-cream-200 bg-white p-5 shadow-card transition-all duration-300 hover:-translate-y-1 hover:border-brand-500 hover:shadow-raised"
+                className="group flex h-full flex-col rounded-card border border-white/10 bg-cream-50 p-5 shadow-card transition-all duration-300 hover:-translate-y-1 hover:border-accent-400 hover:shadow-raised"
               >
                 <div className="flex items-center justify-between gap-2">
-                  <h2 className="font-display text-xl font-semibold text-brand-950">{c.title}</h2>
+                  <h2 className="font-display text-xl font-semibold text-brand-950">{t(c.title)}</h2>
                   {open ? <Badge tone="brand">Open</Badge> : <Badge>Coming soon</Badge>}
                 </div>
-                <p className="mt-2 flex-1 text-sm text-ink-500">{c.text}</p>
+                <p className="mt-2 flex-1 text-sm text-ink-500">{t(c.text)}</p>
                 <span className="mt-4 text-sm font-semibold text-brand-700 group-hover:underline">
-                  {open ? "Continue →" : "Learn more →"}
+                  {t(open ? "Continue" : "Learn more")} →
                 </span>
               </Link>
             </li>
@@ -126,12 +133,13 @@ export default async function RegisterPage({ searchParams }: PageProps<"/registe
   );
 }
 
-function LoginHint() {
+async function LoginHint() {
+  const { t } = await getI18n();
   return (
-    <p className="mt-6 text-center text-sm text-ink-600">
-      Already have an account?{" "}
-      <Link href="/login" className="font-semibold text-brand-700 hover:underline">
-        Log in
+    <p className="mt-6 text-center text-sm text-mist-300">
+      {t("Already have an account?")}{" "}
+      <Link href="/login" className="font-semibold text-accent-300 hover:underline">
+        {t("Log in")}
       </Link>
     </p>
   );

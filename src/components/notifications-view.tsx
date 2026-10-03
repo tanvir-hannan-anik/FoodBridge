@@ -4,7 +4,8 @@ import { PageHeader } from "@/components/layout/page-header";
 import { Card, EmptyState, SubmitButton } from "@/components/ui";
 import type { Notification, NotificationType, Role } from "@/db/schema";
 import { CATEGORY_LABEL, NOTIFICATION_CATEGORIES, NOTIFICATION_CATEGORY, notificationHref, type NotificationCategory } from "@/lib/notifications/meta";
-import { cn, formatRelative } from "@/lib/utils";
+import { getI18n } from "@/lib/i18n-server";
+import { cn } from "@/lib/utils";
 
 const CHECK = "m5 12.5 4.5 4.5L19 7.5";
 const STYLE: Record<NotificationType, { tone: string; icon: string }> = {
@@ -81,7 +82,7 @@ function filterHref(base: string, f: Filter) {
  * Notification list shared by all portals: filters (all / unread, by kind), read ↔ unread per item,
  * and each item opens the donation, request or task it's about (marking it read).
  */
-export function NotificationsView({
+export async function NotificationsView({
   items,
   role,
   unreadTotal,
@@ -94,37 +95,43 @@ export function NotificationsView({
   filter: Filter;
   basePath: string;
 }) {
+  const { t, relative, number } = await getI18n();
   return (
     <div className="mx-auto max-w-3xl">
       <PageHeader
         eyebrow="Updates"
         title="Notifications"
-        description={unreadTotal ? `You have ${unreadTotal} unread ${unreadTotal === 1 ? "update" : "updates"}.` : "You’re all caught up."}
+        description={
+          unreadTotal
+            ? t(unreadTotal === 1 ? "You have {n} unread update." : "You have {n} unread updates.", { n: unreadTotal })
+            : "You’re all caught up."
+        }
         action={
           unreadTotal > 0 && (
             <form action={markNotificationsRead}>
               <SubmitButton variant="outline" className="rounded-full">
-                Mark all as read
+                {t("Mark all as read")}
               </SubmitButton>
             </form>
           )
         }
       />
 
-      <nav aria-label="Filter notifications" className="mb-4 flex flex-wrap gap-2">
+      <nav aria-label={t("Filter notifications")} className="mb-4 flex flex-wrap gap-2">
         <Chip href={filterHref(basePath, { ...filter, unread: false })} active={!filter.unread}>
-          All
+          {t("All")}
         </Chip>
         <Chip href={filterHref(basePath, { ...filter, unread: true })} active={filter.unread}>
-          Unread{unreadTotal ? ` (${unreadTotal})` : ""}
+          {t("Unread")}
+          {unreadTotal ? ` (${number(unreadTotal)})` : ""}
         </Chip>
         <span aria-hidden className="mx-1 w-px bg-cream-300" />
         <Chip href={filterHref(basePath, { ...filter, category: null })} active={!filter.category}>
-          Every kind
+          {t("Every kind")}
         </Chip>
         {NOTIFICATION_CATEGORIES.map((c) => (
           <Chip key={c} href={filterHref(basePath, { ...filter, category: c })} active={filter.category === c}>
-            {CATEGORY_LABEL[c]}
+            {t(CATEGORY_LABEL[c])}
           </Chip>
         ))}
       </nav>
@@ -144,11 +151,11 @@ export function NotificationsView({
                   </span>
                   <div className="min-w-0 flex-1">
                     <p className={cn("text-sm", n.readAt ? "text-ink-700" : "font-semibold text-brand-950")}>
-                      {n.message}
-                      {!n.readAt && <span className="sr-only"> (unread)</span>}
+                      {t(n.message)}
+                      {!n.readAt && <span className="sr-only"> {t("(unread)")}</span>}
                     </p>
                     <p className="mt-1 text-xs text-ink-500">
-                      {CATEGORY_LABEL[NOTIFICATION_CATEGORY[n.type]]} · {formatRelative(n.createdAt)}
+                      {t(CATEGORY_LABEL[NOTIFICATION_CATEGORY[n.type]])} · {relative(n.createdAt)}
                     </p>
                   </div>
                 </>
@@ -167,9 +174,9 @@ export function NotificationsView({
                     <button
                       type="submit"
                       className="rounded-full px-2.5 py-1.5 text-xs font-semibold text-ink-500 hover:bg-cream-100 hover:text-brand-800"
-                      aria-label={n.readAt ? "Mark as unread" : "Mark as read"}
+                      aria-label={t(n.readAt ? "Mark as unread" : "Mark as read")}
                     >
-                      {n.readAt ? "Mark unread" : "Mark read"}
+                      {t(n.readAt ? "Mark unread" : "Mark read")}
                     </button>
                   </form>
                 </li>

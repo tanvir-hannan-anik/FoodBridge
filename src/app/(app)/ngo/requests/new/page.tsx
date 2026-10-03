@@ -7,8 +7,12 @@ import { NeedForm } from "@/components/requests/need-form";
 import { Card, CardBody } from "@/components/ui";
 import { decodeDraft, needDraftSchema } from "@/lib/ai/schemas";
 import { requireRole } from "@/lib/auth/dal";
+import { getI18n } from "@/lib/i18n-server";
 
-export const metadata: Metadata = { title: "New food request" };
+export async function generateMetadata(): Promise<Metadata> {
+  const { t } = await getI18n();
+  return { title: t("New food request") };
+}
 
 /** ISO time `hours` from now (for an assistant draft's "needed in N hours"). */
 function hoursFromNow(hours: number) {
@@ -19,11 +23,12 @@ export default async function NewNeedPage({ searchParams }: PageProps<"/ngo/requ
   const ngo = await requireRole("ngo");
   if (ngo.status !== "active") redirect("/ngo/requests");
   const draft = decodeDraft(needDraftSchema, (await searchParams).draft);
+  const { t } = await getI18n();
 
   return (
     <div className="mx-auto max-w-2xl">
       <Link href="/ngo/requests" className="text-sm font-medium text-ink-500 hover:text-brand-800">
-        ← Food requests
+        ← {t("Food requests")}
       </Link>
       <div className="mt-4">
         <PageHeader

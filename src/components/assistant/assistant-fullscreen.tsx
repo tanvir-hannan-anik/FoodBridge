@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { useEffect, useState } from "react";
 import type { Role } from "@/db/schema";
+import { useI18n } from "@/components/i18n-provider";
 import { cn } from "@/lib/utils";
 import { ChatThread } from "./chat-thread";
 import { useAssistant, type ChatSummary } from "./use-assistant";
@@ -32,6 +33,7 @@ function groupChats(chats: ChatSummary[]) {
 /** Full-screen assistant: chat history on the left (Back, New chat, titled chats), the chat on the right. */
 export function AssistantFullScreen({ role, initial, backHref }: { role: Role; initial: string; backHref: string }) {
   const chat = useAssistant(initial);
+  const { t } = useI18n();
   const [drawer, setDrawer] = useState(false);
 
   // Keep the address bar on the open chat, so reload and sharing the tab work.
@@ -45,13 +47,13 @@ export function AssistantFullScreen({ role, initial, backHref }: { role: Role; i
   const current = chat.conversations.find((c) => c.id === chat.conversationId);
 
   const sidebar = (
-    <nav aria-label="Chat history" className="flex h-full flex-col bg-brand-950 text-cream-50">
+    <nav aria-label={t("Chat history")} className="flex h-full flex-col bg-brand-950 text-cream-50">
       <div className="space-y-2 p-3">
         <Link href={backHref} className="flex h-10 items-center gap-2 rounded-xl px-3 text-sm font-semibold text-brand-100 hover:bg-cream-50/10">
           <svg aria-hidden viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="size-4.5">
             <path d="M15 18l-6-6 6-6" />
           </svg>
-          Back to FoodBridge
+          {t("Back to FoodBridge")}
         </Link>
         <button
           type="button"
@@ -64,17 +66,17 @@ export function AssistantFullScreen({ role, initial, backHref }: { role: Role; i
           <svg aria-hidden viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" className="size-4.5 text-accent-300">
             <path d="M12 5v14M5 12h14" />
           </svg>
-          New chat
+          {t("New chat")}
         </button>
       </div>
 
       <div className="flex-1 overflow-y-auto px-2 pb-3">
         {chat.conversations.length === 0 ? (
-          <p className="px-3 py-6 text-sm text-brand-300">Your chats will appear here.</p>
+          <p className="px-3 py-6 text-sm text-brand-300">{t("Your chats will appear here.")}</p>
         ) : (
           groupChats(chat.conversations).map((g) => (
             <div key={g.label} className="mt-3">
-              <p className="px-3 pb-1 text-[11px] font-semibold tracking-widest text-brand-300 uppercase">{g.label}</p>
+              <p className="px-3 pb-1 text-[11px] font-semibold tracking-widest text-brand-300 uppercase">{t(g.label)}</p>
               <ul className="space-y-0.5">
                 {g.items.map((c) => (
                   <ChatItem
@@ -87,7 +89,7 @@ export function AssistantFullScreen({ role, initial, backHref }: { role: Role; i
                     }}
                     onRename={(title) => chat.rename(c.id, title)}
                     onDelete={() => {
-                      if (window.confirm(`Delete “${c.title}”?`)) void chat.remove(c.id);
+                      if (window.confirm(t("Delete “{title}”?", { title: c.title }))) void chat.remove(c.id);
                     }}
                   />
                 ))}
@@ -102,11 +104,11 @@ export function AssistantFullScreen({ role, initial, backHref }: { role: Role; i
           <button
             type="button"
             onClick={() => {
-              if (window.confirm("Delete all your chats? This can’t be undone.")) void chat.remove();
+              if (window.confirm(t("Delete all your chats? This can’t be undone."))) void chat.remove();
             }}
             className="w-full rounded-xl px-3 py-2 text-left text-xs text-brand-300 hover:bg-cream-50/10 hover:text-cream-50"
           >
-            Delete all chats
+            {t("Delete all chats")}
           </button>
         </div>
       )}
@@ -120,16 +122,16 @@ export function AssistantFullScreen({ role, initial, backHref }: { role: Role; i
       {drawer && (
         <div className="fixed inset-0 z-10 flex md:hidden">
           <aside className="w-[82%] max-w-xs shadow-raised">{sidebar}</aside>
-          <button type="button" aria-label="Close chat history" onClick={() => setDrawer(false)} className="flex-1 bg-brand-950/40" />
+          <button type="button" aria-label={t("Close chat history")} onClick={() => setDrawer(false)} className="flex-1 bg-brand-950/40" />
         </div>
       )}
 
-      <section className="flex min-w-0 flex-1 flex-col" aria-label="FoodBridge assistant">
+      <section className="flex min-w-0 flex-1 flex-col" aria-label={t("FoodBridge assistant")}>
         <header className="flex items-center gap-2 border-b border-cream-200 px-3 py-2.5 sm:px-4">
           <button
             type="button"
             onClick={() => setDrawer(true)}
-            aria-label="Open chat history"
+            aria-label={t("Open chat history")}
             className="grid size-9 place-items-center rounded-full text-brand-900 hover:bg-cream-100 md:hidden"
           >
             <svg aria-hidden viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" className="size-5">
@@ -137,15 +139,15 @@ export function AssistantFullScreen({ role, initial, backHref }: { role: Role; i
             </svg>
           </button>
           <div className="min-w-0 flex-1">
-            <p className="truncate font-display text-lg font-semibold text-brand-950">{current?.title ?? "New chat"}</p>
+            <p className="truncate font-display text-lg font-semibold text-brand-950">{current?.title ?? t("New chat")}</p>
             <p className="truncate text-xs text-ink-500">
-              {chat.enabled ? "Ask FoodBridge · AI can make mistakes · never changes your data" : "Help mode (AI not configured)"}
+              {t(chat.enabled ? "Ask FoodBridge · AI can make mistakes · never changes your data" : "Help mode (AI not configured)")}
             </p>
           </div>
           <Link
             href={backHref}
-            aria-label="Exit full screen"
-            title="Exit full screen"
+            aria-label={t("Exit full screen")}
+            title={t("Exit full screen")}
             className="grid size-9 place-items-center rounded-full text-brand-900 hover:bg-cream-100"
           >
             <svg aria-hidden viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" className="size-4.5">
@@ -174,6 +176,7 @@ function ChatItem({
   onDelete: () => void;
 }) {
   const [editing, setEditing] = useState(false);
+  const { t } = useI18n();
 
   if (editing) {
     return (
@@ -195,7 +198,7 @@ function ChatItem({
               setEditing(false);
             }}
             onKeyDown={(e) => e.key === "Escape" && setEditing(false)}
-            aria-label="Chat name"
+            aria-label={t("Chat name")}
             className="h-9 w-full rounded-lg bg-cream-50 px-3 text-sm text-brand-950 focus:outline-none focus:ring-2 focus:ring-brand-600"
           />
         </form>
@@ -209,12 +212,12 @@ function ChatItem({
         {chat.title}
       </button>
       <span className={cn("flex shrink-0 pr-1", active ? "opacity-100" : "opacity-100 md:opacity-0 md:group-hover:opacity-100 md:group-focus-within:opacity-100")}>
-        <button type="button" onClick={() => setEditing(true)} aria-label={`Rename “${chat.title}”`} className="grid size-7 place-items-center rounded-md text-brand-200 hover:bg-cream-50/10">
+        <button type="button" onClick={() => setEditing(true)} aria-label={t("Rename “{title}”", { title: chat.title })} className="grid size-7 place-items-center rounded-md text-brand-200 hover:bg-cream-50/10">
           <svg aria-hidden viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="size-3.5">
             <path d="M4 20h4L19 9l-4-4L4 16v4ZM14 6l4 4" />
           </svg>
         </button>
-        <button type="button" onClick={onDelete} aria-label={`Delete “${chat.title}”`} className="grid size-7 place-items-center rounded-md text-brand-200 hover:bg-cream-50/10">
+        <button type="button" onClick={onDelete} aria-label={t("Delete “{title}”", { title: chat.title })} className="grid size-7 place-items-center rounded-md text-brand-200 hover:bg-cream-50/10">
           <svg aria-hidden viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="size-3.5">
             <path d="M4 7h16M9 7V4h6v3M6 7l1 13h10l1-13" />
           </svg>

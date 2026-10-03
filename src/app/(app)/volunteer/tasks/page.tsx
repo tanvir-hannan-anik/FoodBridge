@@ -4,8 +4,12 @@ import { TaskList } from "@/components/volunteer/task-list";
 import { Card, EmptyState } from "@/components/ui";
 import { requireRole } from "@/lib/auth/dal";
 import { listVolunteerTasks, sweepVolunteerTasks } from "@/lib/volunteer/service";
+import { getI18n } from "@/lib/i18n-server";
 
-export const metadata: Metadata = { title: "My tasks" };
+export async function generateMetadata(): Promise<Metadata> {
+  const { t } = await getI18n();
+  return { title: t("My tasks") };
+}
 
 export default async function VolunteerTasksPage() {
   const volunteer = await requireRole("volunteer");
@@ -14,6 +18,7 @@ export default async function VolunteerTasksPage() {
     listVolunteerTasks(volunteer, "current"),
     listVolunteerTasks(volunteer, "completed"),
   ]);
+  const { t, number } = await getI18n();
 
   return (
     <div className="mx-auto max-w-3xl">
@@ -21,7 +26,7 @@ export default async function VolunteerTasksPage() {
 
       <section aria-labelledby="current-heading">
         <h2 id="current-heading" className="mb-3 font-display text-xl font-semibold text-brand-950">
-          Current <span className="text-ink-500">({current.length})</span>
+          {t("Current")} <span className="text-ink-500">({number(current.length)})</span>
         </h2>
         {current.length ? (
           <TaskList items={current} />
@@ -34,7 +39,7 @@ export default async function VolunteerTasksPage() {
 
       <section aria-labelledby="completed-heading" className="mt-10">
         <h2 id="completed-heading" className="mb-3 font-display text-xl font-semibold text-brand-950">
-          Completed <span className="text-ink-500">({completed.length})</span>
+          {t("Completed")} <span className="text-ink-500">({number(completed.length)})</span>
         </h2>
         {completed.length ? (
           <TaskList items={completed} />

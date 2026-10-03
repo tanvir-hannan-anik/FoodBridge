@@ -8,14 +8,20 @@ import { requireRole } from "@/lib/auth/dal";
 import { CATEGORY_LABEL } from "@/lib/donations/meta";
 import { hasReportFilters, parseReportQuery } from "@/lib/reports/meta";
 import { getReport } from "@/lib/reports/service";
+import { getI18n } from "@/lib/i18n-server";
 
-export const metadata: Metadata = { title: "Report · NGO" };
+export async function generateMetadata(): Promise<Metadata> {
+  const { t } = await getI18n();
+  return { title: t("Your report") };
+}
 
 /** The NGO's own report: food received and meals served, by month and category. */
 export default async function NgoReportPage({ searchParams }: PageProps<"/ngo/reports">) {
   const ngo = await requireRole("ngo");
   const { fromRaw, toRaw, from, to } = parseReportQuery(await searchParams);
   const report = await getReport({ ngoId: ngo.id, from, to });
+  const i18n = await getI18n();
+  const { t } = i18n;
 
   return (
     <>
@@ -27,11 +33,11 @@ export default async function NgoReportPage({ searchParams }: PageProps<"/ngo/re
           <Input label="To" name="to" type="date" defaultValue={toRaw} />
           <div className="col-span-2 flex gap-2 sm:col-span-1">
             <button type="submit" className="h-10 rounded-full bg-brand-950 px-5 text-sm font-semibold text-cream-50 hover:bg-brand-800">
-              Apply
+              {t("Apply")}
             </button>
             {hasReportFilters({ from, to }) && (
               <Link href="/ngo/reports" className="grid h-10 place-items-center rounded-full border border-brand-900/15 px-4 text-sm font-semibold text-brand-900 hover:bg-cream-100">
-                Reset
+                {t("Reset")}
               </Link>
             )}
           </div>
@@ -41,7 +47,7 @@ export default async function NgoReportPage({ searchParams }: PageProps<"/ngo/re
       <ReportSummary row={report.summary} audience="ngo" />
 
       <div className="mt-6 grid gap-6 xl:grid-cols-2">
-        <BreakdownTable title="By month" description="When the donation was posted." first="Month" rows={report.byMonth} label={monthLabel} audience="ngo" />
+        <BreakdownTable title="By month" description="When the donation was posted." first="Month" rows={report.byMonth} label={(k) => monthLabel(k, i18n)} audience="ngo" />
         <BreakdownTable title="By food category" first="Category" rows={report.byCategory} label={(k) => CATEGORY_LABEL[k as FoodCategory] ?? k} audience="ngo" />
       </div>
     </>

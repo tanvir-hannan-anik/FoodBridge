@@ -2,6 +2,7 @@
 
 import { useEffect, useState, type ReactNode } from "react";
 import { createDonation } from "@/app/actions/donations";
+import { useI18n } from "@/components/i18n-provider";
 import { LocationPicker } from "@/components/map/location-picker";
 import { Alert, Button, Input, Select, Textarea } from "@/components/ui";
 import { useFormAction } from "@/components/ui/use-form-action";
@@ -31,6 +32,7 @@ type Defaults = {
 
 export function DonationForm({ defaults }: { defaults: Defaults }) {
   const { state, action, onSubmit, pending } = useFormAction(createDonation);
+  const { t } = useI18n();
   const e = state?.errors;
 
   // Times depend on the device clock/timezone, so they're filled in after mount.
@@ -59,8 +61,8 @@ export function DonationForm({ defaults }: { defaults: Defaults }) {
       {state?.message && <Alert tone="error">{state.message}</Alert>}
       {draft && !state?.message && (
         <Alert tone="info" title="Filled in by the assistant">
-          Please check every field (especially quantity and times) before posting.
-          {draft.missing.length > 0 && <> Still needed: {draft.missing.join(", ")}.</>}
+          {t("Please check every field (especially quantity and times) before posting.")}
+          {draft.missing.length > 0 && <> {t("Still needed: {list}.", { list: draft.missing.map((m) => t(m)).join(", ") })}</>}
         </Alert>
       )}
       <input type="hidden" name="tzOffset" value={times.tzOffset} />
@@ -111,10 +113,10 @@ export function DonationForm({ defaults }: { defaults: Defaults }) {
 
       <Section step={2} title="When? (food safety)">
         <details className="rounded-xl bg-cream-100 px-4 py-3 text-sm text-ink-700">
-          <summary className="cursor-pointer font-semibold text-brand-950">Food-safety rules</summary>
+          <summary className="cursor-pointer font-semibold text-brand-950">{t("Food-safety rules")}</summary>
           <ul className="mt-2 list-disc space-y-1 pl-5">
             {safetyRulesText().map((rule) => (
-              <li key={rule}>{rule}</li>
+              <li key={rule}>{t(rule)}</li>
             ))}
           </ul>
         </details>
@@ -221,10 +223,10 @@ export function DonationForm({ defaults }: { defaults: Defaults }) {
 
       <div className="flex flex-col-reverse items-center gap-3 rounded-card border border-cream-200 bg-cream-100 p-5 sm:flex-row sm:justify-between">
         <p className="text-center text-xs text-ink-500 sm:text-left">
-          By posting, you confirm this food is safe to eat and stored hygienically.
+          {t("By posting, you confirm this food is safe to eat and stored hygienically.")}
         </p>
         <Button type="submit" size="lg" loading={pending} className="w-full rounded-full px-8 sm:w-auto">
-          {pending ? "Posting donation…" : "Post donation"}
+          {pending ? t("Posting donation…") : t("Post donation")}
         </Button>
       </div>
     </form>
@@ -232,16 +234,17 @@ export function DonationForm({ defaults }: { defaults: Defaults }) {
 }
 
 function Section({ step, title, optional, children }: { step: number; title: string; optional?: boolean; children: ReactNode }) {
+  const { t, number } = useI18n();
   return (
     <fieldset className="overflow-hidden rounded-card border border-cream-200 bg-white shadow-card">
-      <legend className="sr-only">{title}</legend>
+      <legend className="sr-only">{t(title)}</legend>
       <div aria-hidden className="flex items-center gap-3 border-b border-cream-200 bg-cream-50 px-6 py-4">
         <span className="grid size-8 place-items-center rounded-full bg-brand-950 font-display text-sm font-semibold text-accent-300">
-          {step}
+          {number(step)}
         </span>
         <span className="font-display text-lg font-semibold text-brand-950">
-          {title}
-          {optional && <span className="ml-2 font-sans text-sm font-normal text-ink-500">(optional)</span>}
+          {t(title)}
+          {optional && <span className="ml-2 font-sans text-sm font-normal text-ink-500">{t("(optional)")}</span>}
         </span>
       </div>
       <div className="space-y-5 p-6">{children}</div>

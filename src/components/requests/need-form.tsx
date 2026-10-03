@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { useI18n } from "@/components/i18n-provider";
 import { LocationPicker } from "@/components/map/location-picker";
 import { Alert, Button, Input, Select, Textarea } from "@/components/ui";
 import { useFormAction } from "@/components/ui/use-form-action";
@@ -44,6 +45,7 @@ export function NeedForm({
   submitLabel: string;
 }) {
   const { state, action, onSubmit, pending } = useFormAction(serverAction);
+  const { t } = useI18n();
   const e = state?.errors;
 
   // The time field depends on the device timezone, so it's filled in after mount.
@@ -63,7 +65,8 @@ export function NeedForm({
       {state?.message && <Alert tone="error">{state.message}</Alert>}
       {defaults.missing && !state?.message && (
         <Alert tone="info" title="Filled in by the assistant">
-          Please check every field before posting.{defaults.missing.length > 0 && <> Still needed: {defaults.missing.join(", ")}.</>}
+          {t("Please check every field before posting.")}
+          {defaults.missing.length > 0 && <> {t("Still needed: {list}.", { list: defaults.missing.map((m) => t(m)).join(", ") })}</>}
         </Alert>
       )}
       <input type="hidden" name="tzOffset" value={time.tzOffset} />
@@ -154,7 +157,7 @@ export function NeedForm({
       />
 
       <Button type="submit" size="lg" block loading={pending} className="rounded-full">
-        {submitLabel}
+        {t(submitLabel)}
       </Button>
     </form>
   );

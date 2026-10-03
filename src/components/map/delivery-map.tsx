@@ -4,7 +4,9 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import type { Role } from "@/db/schema";
 import { directionsUrl, distanceKm, formatDistance, mapSearchUrl, travelMinutes, type LatLng } from "@/lib/geo";
 import { LIVE_POLL_SECONDS, LIVE_SEND_SECONDS, type DeliveryView, type LivePosition } from "@/lib/location/meta";
-import { cn, formatRelative } from "@/lib/utils";
+import { useI18n } from "@/components/i18n-provider";
+import type { I18n } from "@/lib/i18n";
+import { cn } from "@/lib/utils";
 import { LazyMap } from "./lazy-map";
 import type { MapMarker, MarkerKind } from "./map-canvas";
 
@@ -21,6 +23,8 @@ type Sharing = { state: "off" } | { state: "starting" } | { state: "on"; since: 
  * visible. Sharing needs the browser's permission, stops when you leave the page, and ends with the delivery.
  */
 export function DeliveryMap({ initial, className }: { initial: DeliveryView; className?: string }) {
+  const i18n = useI18n();
+  const { t } = i18n;
   const [view, setView] = useState(initial);
   const [sharing, setSharing] = useState<Sharing>({ state: "off" });
   const [me, setMe] = useState<LatLng | null>(null);
@@ -71,7 +75,7 @@ export function DeliveryMap({ initial, className }: { initial: DeliveryView; cla
 
   const startSharing = useCallback(() => {
     if (!("geolocation" in navigator)) {
-      setSharing({ state: "error", message: "This browser can’t share location." });
+      setSharing({ state: "error", message: t("This browser can’t share location.") });
       return;
     }
     setSharing({ state: "starting" });
@@ -103,13 +107,13 @@ export function DeliveryMap({ initial, className }: { initial: DeliveryView; cla
           state: "error",
           message:
             err.code === err.PERMISSION_DENIED
-              ? "Location permission was denied. Allow it in your browser settings to share."
-              : "Couldn’t get your location. Check GPS / location services and try again.",
+              ? t("Location permission was denied. Allow it in your browser settings to share.")
+              : t("Couldn’t get your location. Check GPS / location services and try again."),
         });
       },
       { enableHighAccuracy: true, maximumAge: 10_000, timeout: 30_000 },
     );
-  }, [url, stopWatching, refresh]);
+  }, [url, stopWatching, refresh, t]);
 
   // Leaving the page stops sharing and deletes my position straight away.
   useEffect(
@@ -137,25 +141,34 @@ export function DeliveryMap({ initial, className }: { initial: DeliveryView; cla
 
   const markers = useMemo(() => {
     const list: MapMarker[] = [];
-    if (view.pickup.point) list.push({ id: "pickup", point: view.pickup.point, kind: "pickup", glyph: "D", title: `Pickup: ${view.pickup.name}` });
+    if (view.pickup.point) list.push({ id: "pickup", point: view.pickup.point, kind: "pickup", glyph: "D", title: t("Pickup: {name}", { name: view.pickup.name }) });
     if (view.delivery?.point) {
-      list.push({ id: "delivery", point: view.delivery.point, kind: "delivery", glyph: "N", title: `Delivery: ${view.delivery.name}` });
+      list.push({ id: "delivery", point: view.delivery.point, kind: "delivery", glyph: "N", title: t("Delivery: {name}", { name: view.delivery.name }) });
     }
     for (const p of view.positions) {
       if (p.userId === view.viewerId && me) continue; // drawn from the device below, fresher
       const kind = LIVE_KIND[p.role];
-      if (kind) list.push({ id: `live-${p.userId}`, point: p, kind, glyph: ROLE_NAME[p.role][0], title: `${p.name} (${ROLE_NAME[p.role]}, live)`, accuracy: p.accuracy });
+      if (kind) {
+        list.push({
+          id: `live-${p.userId}`,
+          point: p,
+          kind,
+          glyph: ROLE_NAME[p.role][0],
+          title: t("{name} ({role}, live)", { name: p.name, role: t(ROLE_NAME[p.role]) }),
+          accuracy: p.accuracy,
+        });
+      }
     }
     if (me) {
       const kind = LIVE_KIND[view.viewerRole] ?? "volunteer-live";
-      list.push({ id: "me", point: me, kind, glyph: "•", title: "You (live)" });
+      list.push({ id: "me", point: me, kind, glyph: "•", title: t("You (live)") });
     } else if (iAmVolunteer || view.viewerRole === "admin") {
       if (!volunteerLive && view.volunteer?.point) {
-        list.push({ id: "volunteer-base", point: view.volunteer.point, kind: "volunteer", glyph: "V", title: `${view.volunteer.name} (last known position)` });
+        list.push({ id: "volunteer-base", point: view.volunteer.point, kind: "volunteer", glyph: "V", title: t("{name} (last known position)", { name: view.volunteer.name }) });
       }
     }
     return list;
-  }, [view, me, iAmVolunteer, volunteerLive]);
+  }, [view, me, iAmVolunteer, volunteerLive, t]);
 
   // Simple route: Volunteer → Donor → NGO before pickup; Volunteer → NGO after it.
   const route = [beforePickup ? volunteerPoint : null, beforePickup ? view.pickup.point : volunteerPoint ?? view.pickup.point, view.delivery?.point ?? null].filter(
@@ -173,20 +186,20 @@ export function DeliveryMap({ initial, className }: { initial: DeliveryView; cla
         <LazyMap markers={markers} route={route} fitKey={fitKey} />
       ) : (
         <p className="rounded-2xl bg-cream-100 px-4 py-6 text-center text-sm text-ink-500">
-          No map pins yet. Addresses are shown below; pins appear once donors and NGOs set their location.
+          {t("No map pins yet. Addresses are shown below; pins appear once donors and NGOs set their location.")}
         </p>
       )}
 
-      <ul className="flex flex-wrap gap-x-4 gap-y-1 text-xs text-ink-600" aria-label="Map legend">
-        <Legend className="bg-accent-500" label={`Pickup · ${view.pickup.name}`} />
-        {view.delivery && <Legend className="bg-brand-700" label={`Delivery · ${view.delivery.name}`} />}
-        {view.volunteer && <Legend className="bg-violet-600" label={`Volunteer · ${view.volunteer.name}`} />}
+      <ul className="flex flex-wrap gap-x-4 gap-y-1 text-xs text-ink-600" aria-label={t("Map legend")}>
+        <Legend className="bg-accent-500" label={`${t("Pickup")} · ${view.pickup.name}`} />
+        {view.delivery && <Legend className="bg-brand-700" label={`${t("Delivery")} · ${view.delivery.name}`} />}
+        {view.volunteer && <Legend className="bg-violet-600" label={`${t("Volunteer")} · ${view.volunteer.name}`} />}
       </ul>
 
       <dl className="grid grid-cols-2 gap-2 text-sm sm:grid-cols-3">
-        {beforePickup && <Metric label="Volunteer → pickup" km={toPickup} />}
-        {!beforePickup && view.live && <Metric label="Volunteer → NGO" km={toNgo} />}
-        <Metric label="Donor → NGO" km={pickupToNgo} />
+        {beforePickup && <Metric label={t("Volunteer → pickup")} km={toPickup} i18n={i18n} />}
+        {!beforePickup && view.live && <Metric label={t("Volunteer → NGO")} km={toNgo} i18n={i18n} />}
+        <Metric label={t("Donor → NGO")} km={pickupToNgo} i18n={i18n} />
       </dl>
 
       <div className="flex flex-wrap gap-2">
@@ -197,11 +210,13 @@ export function DeliveryMap({ initial, className }: { initial: DeliveryView; cla
               destination: { point: view.delivery.point, address: view.delivery.address },
               waypoints: beforePickup ? [{ point: view.pickup.point, address: view.pickup.address }] : [],
             })}
-            label={beforePickup ? "Route: you → donor → NGO" : "Navigate to NGO"}
+            label={t(beforePickup ? "Route: you → donor → NGO" : "Navigate to NGO")}
           />
         )}
-        <NavLink href={mapSearchUrl(view.pickup.point, view.pickup.address)} label="Open pickup in Maps" />
-        {view.delivery && <NavLink href={mapSearchUrl(view.delivery.point, view.delivery.address)} label="Open delivery in Maps" />}
+        <NavLink href={mapSearchUrl(view.pickup.point, view.pickup.address)} label={t("Open pickup in Maps")} />
+        {view.delivery && (
+          <NavLink href={mapSearchUrl(view.delivery.point, view.delivery.address)} label={t("Open delivery in Maps")} />
+        )}
       </div>
 
       {view.live && (
@@ -210,14 +225,14 @@ export function DeliveryMap({ initial, className }: { initial: DeliveryView; cla
             <div className="min-w-0">
               <p className="flex items-center gap-2 text-sm font-semibold text-brand-950">
                 <span aria-hidden className={cn("size-2.5 rounded-full", view.positions.length ? "animate-pulse bg-brand-500" : "bg-ink-300")} />
-                Live location
+                {t("Live location")}
               </p>
               <p className="text-xs text-ink-500">
                 {others.length
-                  ? others.map((p) => livedLabel(p)).join(" · ")
+                  ? others.map((p) => livedLabel(p, i18n)).join(" · ")
                   : view.viewerRole === "volunteer"
-                    ? "Share yours so the donor and NGO can see you coming."
-                    : "Nobody is sharing right now. You’ll see the volunteer here if they share."}
+                    ? t("Share yours so the donor and NGO can see you coming.")
+                    : t("Nobody is sharing right now. You’ll see the volunteer here if they share.")}
               </p>
             </div>
             {view.canShare &&
@@ -227,7 +242,7 @@ export function DeliveryMap({ initial, className }: { initial: DeliveryView; cla
                   onClick={stopSharing}
                   className="h-10 shrink-0 rounded-full border border-red-200 bg-white px-4 text-sm font-semibold text-red-700 hover:bg-red-50"
                 >
-                  {sharing.state === "starting" ? "Starting…" : "Stop sharing"}
+                  {t(sharing.state === "starting" ? "Starting…" : "Stop sharing")}
                 </button>
               ) : (
                 <button
@@ -235,16 +250,17 @@ export function DeliveryMap({ initial, className }: { initial: DeliveryView; cla
                   onClick={startSharing}
                   className="h-10 shrink-0 rounded-full bg-brand-600 px-4 text-sm font-semibold text-white hover:bg-brand-700"
                 >
-                  Share my live location
+                  {t("Share my live location")}
                 </button>
               ))}
           </div>
-          {sharing.state === "on" && <p className="mt-2 text-xs font-medium text-brand-700">You’re sharing your live location with this delivery.</p>}
+          {sharing.state === "on" && <p className="mt-2 text-xs font-medium text-brand-700">{t("You’re sharing your live location with this delivery.")}</p>}
           {sharing.state === "error" && <p className="mt-2 text-xs font-medium text-red-600">{sharing.message}</p>}
           {view.canShare && (
             <p className="mt-2 text-xs text-ink-500">
-              Only this delivery’s donor, NGO, volunteer and the FoodBridge team can see it. Sharing stops when you leave this page, and
-              positions are deleted when the delivery ends.
+              {t(
+                "Only this delivery’s donor, NGO, volunteer and the FoodBridge team can see it. Sharing stops when you leave this page, and positions are deleted when the delivery ends.",
+              )}
             </p>
           )}
         </section>
@@ -253,8 +269,8 @@ export function DeliveryMap({ initial, className }: { initial: DeliveryView; cla
   );
 }
 
-function livedLabel(p: LivePosition) {
-  return `${p.name} (${ROLE_NAME[p.role].toLowerCase()}) · ${formatRelative(new Date(p.updatedAt))}`;
+function livedLabel(p: LivePosition, { t, relative }: I18n) {
+  return `${p.name} (${t(ROLE_NAME[p.role]).toLowerCase()}) · ${relative(new Date(p.updatedAt))}`;
 }
 
 function Legend({ className, label }: { className: string; label: string }) {
@@ -266,14 +282,15 @@ function Legend({ className, label }: { className: string; label: string }) {
   );
 }
 
-function Metric({ label, km }: { label: string; km: number | null }) {
+function Metric({ label, km, i18n }: { label: string; km: number | null; i18n: I18n }) {
+  const { t } = i18n;
   const minutes = travelMinutes(km);
   return (
     <div className="rounded-xl bg-cream-100 px-3 py-2">
       <dt className="text-xs text-ink-500">{label}</dt>
       <dd className="font-semibold text-brand-950">
-        {formatDistance(km) ?? "—"}
-        {minutes && <span className="ml-1 text-xs font-normal text-ink-500">~{minutes} min</span>}
+        {t(formatDistance(km) ?? "—")}
+        {minutes && <span className="ml-1 text-xs font-normal text-ink-500">{t("~{n} min", { n: minutes })}</span>}
       </dd>
     </div>
   );

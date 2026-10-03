@@ -9,8 +9,12 @@ import { CATEGORY_LABEL, toOptions } from "@/lib/donations/meta";
 import { expireOverdueDonations } from "@/lib/donations/service";
 import { EXPIRY_FILTERS } from "@/lib/ngo/meta";
 import { listAvailableDonations } from "@/lib/ngo/service";
+import { getI18n } from "@/lib/i18n-server";
 
-export const metadata: Metadata = { title: "Find food" };
+export async function generateMetadata(): Promise<Metadata> {
+  const { t } = await getI18n();
+  return { title: t("Find food") };
+}
 
 const CATEGORIES = [{ value: "", label: "All food types" }, ...toOptions(CATEGORY_LABEL)];
 
@@ -28,6 +32,7 @@ export default async function FindFoodPage({ searchParams }: PageProps<"/ngo/don
 
   await expireOverdueDonations();
   const items = await listAvailableDonations(ngo.id, { location, category, within });
+  const { t } = await getI18n();
 
   return (
     <>
@@ -52,34 +57,42 @@ export default async function FindFoodPage({ searchParams }: PageProps<"/ngo/don
               type="submit"
               className="h-12 flex-1 rounded-full bg-brand-950 px-6 text-sm font-semibold text-cream-50 hover:bg-brand-800 md:flex-none"
             >
-              Apply
+              {t("Apply")}
             </button>
             {filtered && (
               <Link
                 href="/ngo/donations"
                 className="grid h-12 place-items-center rounded-full border border-brand-900/15 px-5 text-sm font-semibold text-brand-900 hover:bg-cream-100"
               >
-                Reset
+                {t("Reset")}
               </Link>
             )}
           </div>
         </form>
         {ngo.area && location.toLowerCase() !== ngo.area.toLowerCase() && (
           <p className="mt-4 text-sm text-ink-600">
-            Quick filter:{" "}
+            {t("Quick filter:")}{" "}
             <Link
               href={`/ngo/donations?location=${encodeURIComponent(ngo.area)}`}
               className="rounded-full bg-cream-100 px-3 py-1 font-semibold text-brand-800 hover:bg-cream-200"
             >
-              My service area · {ngo.area}
+              {t("My service area")} · {ngo.area}
             </Link>
           </p>
         )}
       </Card>
 
       <p className="mb-4 text-sm text-ink-500" role="status">
-        {items.length} {items.length === 1 ? "donation" : "donations"} available
-        {filtered ? " matching your filters" : ""}
+        {t(
+          filtered
+            ? items.length === 1
+              ? "{n} donation available matching your filters"
+              : "{n} donations available matching your filters"
+            : items.length === 1
+              ? "{n} donation available"
+              : "{n} donations available",
+          { n: items.length },
+        )}
       </p>
 
       {items.length ? (
@@ -96,7 +109,7 @@ export default async function FindFoodPage({ searchParams }: PageProps<"/ngo/don
             action={
               filtered && (
                 <Link href="/ngo/donations" className="font-semibold text-brand-700 hover:underline">
-                  Clear filters
+                  {t("Clear filters")}
                 </Link>
               )
             }

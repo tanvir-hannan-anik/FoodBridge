@@ -1,4 +1,7 @@
+"use client";
+
 import type { ComponentProps, ReactNode } from "react";
+import { useI18n } from "@/components/i18n-provider";
 import { cn } from "@/lib/utils";
 
 const CONTROL =
@@ -31,19 +34,21 @@ function Field({
   className,
   children,
 }: FieldProps & { children: (a11y: A11y) => ReactNode }) {
+  const { t } = useI18n();
   const id = `field-${name}`;
-  const message = Array.isArray(error) ? error[0] : error;
+  const raw = Array.isArray(error) ? error[0] : error;
+  const message = raw && t(raw);
   const describedBy = [hint && `${id}-hint`, message && `${id}-error`].filter(Boolean).join(" ") || undefined;
   return (
     <div className={cn("space-y-1.5", className)}>
       <label htmlFor={id} className="block text-sm font-semibold text-brand-950">
-        {label}
-        {optional && <span className="ml-1 font-normal text-ink-500">(optional)</span>}
+        {t(label)}
+        {optional && <span className="ml-1 font-normal text-ink-500">{t("(optional)")}</span>}
       </label>
       {children({ id, "aria-invalid": message ? true : undefined, "aria-describedby": describedBy })}
       {hint && !message && (
         <p id={`${id}-hint`} className="text-xs text-ink-500">
-          {hint}
+          {typeof hint === "string" ? t(hint) : hint}
         </p>
       )}
       {message && (
@@ -62,11 +67,21 @@ export function Input({
   optional,
   className,
   name,
+  placeholder,
   ...props
 }: FieldProps & Omit<ComponentProps<"input">, "name">) {
+  const { t } = useI18n();
   return (
     <Field label={label} name={name} hint={hint} error={error} optional={optional} className={className}>
-      {(a11y) => <input name={name} {...a11y} {...props} className={controlClass(error, "h-12")} />}
+      {(a11y) => (
+        <input
+          name={name}
+          placeholder={placeholder && t(placeholder)}
+          {...a11y}
+          {...props}
+          className={controlClass(error, "h-12")}
+        />
+      )}
     </Field>
   );
 }
@@ -78,11 +93,22 @@ export function Textarea({
   optional,
   className,
   name,
+  placeholder,
   ...props
 }: FieldProps & Omit<ComponentProps<"textarea">, "name">) {
+  const { t } = useI18n();
   return (
     <Field label={label} name={name} hint={hint} error={error} optional={optional} className={className}>
-      {(a11y) => <textarea name={name} rows={3} {...a11y} {...props} className={controlClass(error, "py-2.5")} />}
+      {(a11y) => (
+        <textarea
+          name={name}
+          rows={3}
+          placeholder={placeholder && t(placeholder)}
+          {...a11y}
+          {...props}
+          className={controlClass(error, "py-2.5")}
+        />
+      )}
     </Field>
   );
 }
@@ -100,15 +126,16 @@ export function Select({
   placeholder,
   ...props
 }: FieldProps & Omit<ComponentProps<"select">, "name"> & { options: readonly Option[]; placeholder?: string }) {
+  const { t } = useI18n();
   return (
     <Field label={label} name={name} hint={hint} error={error} optional={optional} className={className}>
       {(a11y) => (
         <div className="relative">
           <select name={name} {...a11y} {...props} className={controlClass(error, "h-12 appearance-none pr-10")}>
-            {placeholder && <option value="">{placeholder}</option>}
+            {placeholder && <option value="">{t(placeholder)}</option>}
             {options.map((o) => (
               <option key={o.value} value={o.value}>
-                {o.label}
+                {t(o.label)}
               </option>
             ))}
           </select>
