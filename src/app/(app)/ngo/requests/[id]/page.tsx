@@ -16,7 +16,7 @@ import { formatDistance } from "@/lib/geo";
 import { explainMatch, matchStage } from "@/lib/matching/meta";
 import { listMatchHistory } from "@/lib/matching/service";
 import { needClosedReason } from "@/lib/requests/meta";
-import { getNeed, matchOpenNeeds } from "@/lib/requests/service";
+import { getNeed, listNeedResponses, matchOpenNeeds } from "@/lib/requests/service";
 import { getI18n } from "@/lib/i18n-server";
 import { rich } from "@/lib/i18n-rich";
 
@@ -35,7 +35,7 @@ export default async function NeedPage({ params, searchParams }: PageProps<"/ngo
   if (ngo.status === "active") await matchOpenNeeds({ needId: id });
   const need = await getNeed(ngo.id, id);
   if (!need) notFound();
-  const history = await listMatchHistory({ needId: need.id }, 30);
+  const [history, replies] = await Promise.all([listMatchHistory({ needId: need.id }, 30), listNeedResponses(ngo.id, need.id)]);
 
   const proposal = need.allocations.find((a) => a.status === "MATCHED");
   const accepted = need.allocations.filter((a) => a.status === "ACCEPTED");
@@ -172,6 +172,31 @@ export default async function NeedPage({ params, searchParams }: PageProps<"/ngo
           </p>
         )}
       </Card>
+
+      {replies.length > 0 && (
+        <Card className="overflow-hidden">
+          <CardHeader title="Donor replies" description="Donors near you who answered this request." />
+          <ul className="divide-y divide-cream-200">
+            {replies.map((r) => (
+              <li key={r.id} className="px-6 py-4">
+                <p className="text-sm text-ink-800">“{r.message}”</p>
+                <p className="mt-1 text-xs text-ink-500">
+                  {r.donorName}
+                  {r.donorArea ? ` · ${r.donorArea}` : ""} · {relative(r.updatedAt)}
+                  {r.donationId && (
+                    <>
+                      {" · "}
+                      <Link href={`/ngo/donations/${r.donationId}`} className="font-semibold text-brand-700 hover:underline">
+                        {t("See the food they posted")}
+                      </Link>
+                    </>
+                  )}
+                </p>
+              </li>
+            ))}
+          </ul>
+        </Card>
+      )}
 
       <Card className="overflow-hidden">
         <CardHeader title="Matching history" description="Every donation proposed, accepted, rejected or allocated for this request." />

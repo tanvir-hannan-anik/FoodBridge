@@ -63,6 +63,14 @@ const STYLE: Record<NotificationType, { tone: string; icon: string }> = {
     icon: "M12 9v4m0 4h.01M10.3 3.9 1.8 18a2 2 0 0 0 1.7 3h17a2 2 0 0 0 1.7-3L13.7 3.9a2 2 0 0 0-3.4 0Z",
   },
   pickup_reminder: { tone: "bg-accent-100 text-accent-700", icon: "M12 7v5l3 2M21 12a9 9 0 1 1-18 0 9 9 0 0 1 18 0Z" },
+  need_posted: {
+    tone: "bg-accent-100 text-accent-700",
+    icon: "M3 10.5 12 3l9 7.5V20a1 1 0 0 1-1 1H4a1 1 0 0 1-1-1ZM12 17s-3-1.8-3-4a1.8 1.8 0 0 1 3-1.2 1.8 1.8 0 0 1 3 1.2c0 2.2-3 4-3 4Z",
+  },
+  need_response: {
+    tone: "bg-brand-100 text-brand-700",
+    icon: "M21 12a8 8 0 0 1-11.6 7.1L4 20l1-4.6A8 8 0 1 1 21 12ZM8.5 12h.01M12 12h.01M15.5 12h.01",
+  },
   expiry_warning: {
     tone: "bg-accent-100 text-accent-700",
     icon: "M12 9v4m0 4h.01M10.3 3.9 1.8 18a2 2 0 0 0 1.7 3h17a2 2 0 0 0 1.7-3L13.7 3.9a2 2 0 0 0-3.4 0Z",

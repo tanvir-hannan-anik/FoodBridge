@@ -84,6 +84,9 @@ export const NOTIFICATION_TYPES = [
   "safety_review",
   // Admin-only alerts (Segment 14): something needs a person to step in
   "admin_alert",
+  // Donors answer NGO food requests (Segment 22)
+  "need_posted",
+  "need_response",
 ] as const;
 
 /** Admin food-safety hold: FLAGGED = paused for review (not matchable), DISABLED = withdrawn as unsafe. */
@@ -261,6 +264,29 @@ export const foodNeeds = pgTable(
     updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
   },
   (t) => [index("food_needs_ngo_idx").on(t.ngoId, t.createdAt), index("food_needs_status_idx").on(t.status, t.neededBy)],
+);
+
+/**
+ * A donor's answer to an NGO food request ("I’ll have food left tonight, I can give this").
+ * One per donor and request; `donationId` is set when they posted food for it, which is then
+ * proposed to the NGO as a match (the NGO still confirms it).
+ */
+export const needResponses = pgTable(
+  "need_responses",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    needId: uuid("need_id")
+      .notNull()
+      .references(() => foodNeeds.id, { onDelete: "cascade" }),
+    donorId: uuid("donor_id")
+      .notNull()
+      .references(() => users.id, { onDelete: "cascade" }),
+    message: text("message").notNull(),
+    donationId: uuid("donation_id").references(() => donations.id, { onDelete: "set null" }),
+    createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+    updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
+  },
+  (t) => [uniqueIndex("need_responses_need_id_donor_id_key").on(t.needId, t.donorId), index("need_responses_need_idx").on(t.needId, t.updatedAt)],
 );
 
 export const foodRequests = pgTable(
@@ -474,6 +500,7 @@ export const activityLog = pgTable(
 export type User = typeof users.$inferSelect;
 export type FoodRequest = typeof foodRequests.$inferSelect;
 export type FoodNeed = typeof foodNeeds.$inferSelect;
+export type NeedResponse = typeof needResponses.$inferSelect;
 export type ActivityLogEntry = typeof activityLog.$inferSelect;
 export type Donation = typeof donations.$inferSelect;
 export type DonationEvent = typeof donationEvents.$inferSelect;

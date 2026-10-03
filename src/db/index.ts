@@ -324,6 +324,19 @@ CREATE INDEX IF NOT EXISTS donation_events_status_idx ON donation_events (status
 ALTER TABLE users ADD COLUMN IF NOT EXISTS session_version integer NOT NULL DEFAULT 0;
 -- Segment 19: activity log browsing by action and type
 CREATE INDEX IF NOT EXISTS activity_log_action_idx ON activity_log (action, created_at);
+
+-- Segment 22: donors answer NGO food requests (a comment, optionally with the food they posted for it)
+CREATE TABLE IF NOT EXISTS need_responses (
+  id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+  need_id uuid NOT NULL REFERENCES food_needs(id) ON DELETE CASCADE,
+  donor_id uuid NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+  message text NOT NULL,
+  donation_id uuid REFERENCES donations(id) ON DELETE SET NULL,
+  created_at timestamptz NOT NULL DEFAULT now(),
+  updated_at timestamptz NOT NULL DEFAULT now(),
+  UNIQUE (need_id, donor_id)
+);
+CREATE INDEX IF NOT EXISTS need_responses_need_idx ON need_responses (need_id, updated_at);
 `;
 
 /** Accounts that cannot self-register (admin) plus ready-made demo partners (DEMO_MODE only). */

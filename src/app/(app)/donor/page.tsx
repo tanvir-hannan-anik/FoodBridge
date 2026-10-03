@@ -3,6 +3,7 @@ import Link from "next/link";
 import type { ReactNode } from "react";
 import { ActivityCard } from "@/components/dashboard/activity-card";
 import { DonationList } from "@/components/donor/donation-list";
+import { NeedBoard } from "@/components/donor/need-board";
 import { Alert, Card, CardHeader, EmptyState } from "@/components/ui";
 import { parsePeriod } from "@/lib/analytics/meta";
 import { getActivity } from "@/lib/analytics/service";
@@ -10,6 +11,8 @@ import { requireRole } from "@/lib/auth/dal";
 import { DONOR_TYPE_LABEL } from "@/lib/donations/meta";
 import { getDonorStats, listDonorDonations, sweepDonorDonations } from "@/lib/donations/service";
 import { getI18n } from "@/lib/i18n-server";
+import { toNeedCard } from "@/lib/requests/meta";
+import { listOpenNeedsForDonor } from "@/lib/requests/service";
 import { expiresWithin, greeting } from "@/lib/utils";
 
 export async function generateMetadata(): Promise<Metadata> {
@@ -28,11 +31,12 @@ export default async function DonorDashboard({ searchParams }: PageProps<"/donor
   const donor = await requireRole("donor");
   await sweepDonorDonations(donor.id);
   const { welcome, period } = await searchParams;
-  const [stats, active, completed, activity] = await Promise.all([
+  const [stats, active, completed, activity, needs] = await Promise.all([
     getDonorStats(donor.id),
     listDonorDonations(donor.id, "active", 6),
     listDonorDonations(donor.id, "completed", 4),
     getActivity({ donorId: donor.id }, parsePeriod(period)),
+    listOpenNeedsForDonor(donor, 5),
   ]);
 
   const expiringSoon = active.filter((d) => expiresWithin(d.expiresAt, 60));
@@ -122,6 +126,27 @@ export default async function DonorDashboard({ searchParams }: PageProps<"/donor
             ? t("“{food}” expires within an hour and hasn’t been picked up yet.", { food: expiringSoon[0].foodType })
             : t("{n} donations expire within an hour and haven’t been picked up yet.", { n: expiringSoon.length })}
         </Alert>
+      )}
+
+      {/* NGO requests nearby: reply or post food for one */}
+      {needs.length > 0 && (
+        <Card className="overflow-hidden">
+          <CardHeader
+            title="NGOs near you need food"
+            description="Can you help? Reply to the NGO, or post your food for their request. They confirm it and a volunteer collects it."
+            action={
+              <Link
+                href="/donor/needs"
+                className="rounded-full border border-brand-900/10 px-3.5 py-1.5 text-sm font-semibold text-brand-800 hover:bg-cream-100"
+              >
+                {t("View all")}
+              </Link>
+            }
+          />
+          <div className="px-4 pb-5 sm:px-6">
+            <NeedBoard needs={needs.slice(0, 4).map(toNeedCard)} />
+          </div>
+        </Card>
       )}
 
       {/* Stats */}

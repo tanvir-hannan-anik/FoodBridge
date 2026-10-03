@@ -61,4 +61,9 @@ export const NOTIFICATIONS: Record<string, string> = {
   "Hurry: “{food}” expires in {n} min. Pick it up as soon as you can.": "তাড়াতাড়ি করুন: “{food}”-এর মেয়াদ {n} মিনিটে শেষ হবে। যত দ্রুত সম্ভব সংগ্রহ করুন।",
   "Allocated food “{food}” expires in {n} min and hasn’t been collected yet.": "বরাদ্দ করা খাবার “{food}”-এর মেয়াদ {n} মিনিটে শেষ হবে, এখনো সংগ্রহ করা হয়নি।",
   "Offered by FoodBridge": "ফুডব্রিজ প্রস্তাব দিয়েছে",
+
+  // Donors answering NGO food requests
+  "{ngo} needs {food} for {n} people in {area}. Can you help?": "{area}-এ {ngo}-এর {n} জনের জন্য {food} দরকার। আপনি কি সাহায্য করতে পারবেন?",
+  "{donor} replied to your request “{food}”: “{message}”": "{donor} আপনার অনুরোধ “{food}”-এ সাড়া দিয়েছেন: “{message}”",
+  "{donor} posted food for your request: “{food}” (~{n} meals). Accept or reject it.": "{donor} আপনার অনুরোধের জন্য খাবার পোস্ট করেছেন: “{food}” (~{n} বেলার খাবার)। গ্রহণ বা প্রত্যাখ্যান করুন।",
 };

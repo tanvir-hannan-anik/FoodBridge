@@ -6,6 +6,7 @@ import type { NotificationType, NotifyChannel, Role } from "@/db/schema";
  */
 export const NOTIFICATION_CATEGORIES = [
   "donation_created",
+  "food_needed",
   "match_found",
   "request_accepted",
   "volunteer_assigned",
@@ -18,6 +19,7 @@ export type NotificationCategory = (typeof NOTIFICATION_CATEGORIES)[number];
 
 export const CATEGORY_LABEL: Record<NotificationCategory, string> = {
   donation_created: "Donation created",
+  food_needed: "NGOs needing food",
   match_found: "Match found",
   request_accepted: "Request accepted",
   volunteer_assigned: "Volunteer assigned",
@@ -53,12 +55,14 @@ export const NOTIFICATION_CATEGORY: Record<NotificationType, NotificationCategor
   task_available: "other",
   task_declined: "other",
   match_cancelled: "other",
+  need_posted: "food_needed",
+  need_response: "food_needed",
 };
 
 /** Categories important enough to also send over outside channels (email, SMS, WhatsApp, Messenger). */
 export const EXTERNAL_CATEGORIES: NotificationCategory[] = NOTIFICATION_CATEGORIES.filter((c) => c !== "other");
 /** Chat apps (WhatsApp, Messenger) get only the key status updates, so chats stay quiet. */
-export const CHAT_CATEGORIES: NotificationCategory[] = ["match_found", "volunteer_assigned", "pickup_confirmed", "delivery_completed", "expiry_warning"];
+export const CHAT_CATEGORIES: NotificationCategory[] = ["food_needed", "match_found", "volunteer_assigned", "pickup_confirmed", "delivery_completed", "expiry_warning"];
 
 export const CHANNEL_LABEL: Record<NotifyChannel, string> = {
   email: "Email",
@@ -70,6 +74,7 @@ export const CHANNEL_LABEL: Record<NotifyChannel, string> = {
 /** Where a notification leads, for the user who received it. */
 export function notificationHref(role: Role, n: { donationId: string | null; needId: string | null; type: NotificationType }) {
   if (n.needId && role === "ngo") return `/ngo/requests/${n.needId}`;
+  if (n.needId && role === "donor" && !n.donationId) return `/donor/needs#need-${n.needId}`;
   if (!n.donationId) return n.type === "account_verified" ? `/${role}` : null;
   switch (role) {
     case "donor":

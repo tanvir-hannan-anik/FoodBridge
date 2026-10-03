@@ -18,7 +18,7 @@ export const KNOWLEDGE: KnowledgeDoc[] = [
     id: "about",
     title: "What FoodBridge does",
     audience: "all",
-    body: `FoodBridge is the FoodWasteZero initiative's platform in Dhaka. Donors (restaurants, hotels, shops, households) post surplus food. Verified NGOs request it or get it matched to their food requests. Verified volunteers pick it up and deliver it. The FoodBridge team (admins) verifies partners and keeps food safe and moving. Recipients are only counted as meals or people served; no personal data about them is stored.`,
+    body: `FoodBridge is the FoodWasteZero initiative's platform for all of Bangladesh (it started in Dhaka). Donors (restaurants, hotels, shops, households) post surplus food. Verified NGOs request it or get it matched to their food requests. Verified volunteers pick it up and deliver it. The FoodBridge team (admins) verifies partners and keeps food safe and moving. Recipients are only counted as meals or people served; no personal data about them is stored.`,
   },
   {
     id: "donate-how",
@@ -44,6 +44,12 @@ Food shows as Safe, Expiring soon or Expired. Expired food is removed from match
     title: "How NGOs get food",
     audience: "ngo",
     body: `There are two ways. 1) Find food: browse available donations and send a request with quantity, people to feed and a preferred pickup time; the donor accepts one NGO. 2) Food requests: post what you need (food type or any food, quantity, people to serve, area, delivery address and map pin, needed-by time, notes). The system proposes the best donation; you accept or reject it. You can edit or cancel a food request until food has been accepted, and close it when you have enough. NGOs must be verified by FoodBridge before requesting food. Don't include names or personal details of the people you serve.`,
+  },
+  {
+    id: "donor-answers-needs",
+    title: "Answering NGO food requests as a donor",
+    audience: "donor",
+    body: `When a verified NGO near you posts a food request, you get an alert (in the app, and by SMS, WhatsApp or Messenger if you turned those on), so you don't have to keep checking the website. Open "NGO needs" (or the card on your dashboard) to see what each NGO needs, for how many people, where and by when. Tap "I can help" to send the NGO a short reply, e.g. "I'll have some food left soon. I can give this." Choose "Send and post the food" to go straight to the donation form, pre-filled from their request: your food is offered to that NGO first, the NGO confirms it, and then the nearest volunteer collects it from you. You can also donate money on the home page (online payments are coming soon).`,
   },
   {
     id: "matching",

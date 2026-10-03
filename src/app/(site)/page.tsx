@@ -6,15 +6,34 @@ import { SITE_COPY, WASTE_KG_PER_SECOND, type SiteCopy } from "@/components/home
 import {
   ArrowIcon,
   BasketIcon,
+  BellIcon,
   BikeIcon,
+  ChatBubbleIcon,
   CheckIcon,
   HandshakeIcon,
   HomeHeartIcon,
   PlateIcon,
 } from "@/components/home/icons";
-import { PHOTOS, type PhotoKey } from "@/components/home/photos";
+import { AssistantButton, LandingAssistant } from "@/components/home/landing-assistant";
+import { DonateMoney } from "@/components/home/donate-money";
+import { NewsMarquee } from "@/components/home/news-marquee";
+import {
+  chartHouseholdWaste,
+  chartWasteComposition,
+  newsFoodWaste14m,
+  newsWastes34,
+  newsWorldBank34,
+  PHOTOS,
+  sdg1,
+  sdg12,
+  sdg13,
+  sdg17,
+  sdg2,
+  type PhotoKey,
+} from "@/components/home/photos";
 import { WasteCounter } from "@/components/home/waste-counter";
 import { Skeleton } from "@/components/ui";
+import { readSession } from "@/lib/auth/session";
 import { getPublicImpact } from "@/lib/donations/service";
 import { formatCount, toBnDigits, type Lang } from "@/lib/i18n";
 import { getLang } from "@/lib/i18n-server";
@@ -30,6 +49,7 @@ export async function generateMetadata(): Promise<Metadata> {
     keywords: [
       "food donation Bangladesh",
       "donate food Dhaka",
+      "donate food Chattogram",
       "food waste in Bangladesh",
       "surplus food donation",
       "food insecurity Bangladesh",
@@ -65,10 +85,13 @@ const ROLE_TONE: Record<RoleKey, string> = {
   volunteer: "border-mist-300/25 bg-white/5 text-mist-200",
 };
 
+const NEWS = { news14m: newsFoodWaste14m, newsWb: newsWorldBank34, news34: newsWastes34 };
+const SDG_IMAGE = { sdg2, sdg12, sdg13, sdg17, sdg1 };
+
 const num = (value: number, lang: Lang) => (lang === "bn" ? toBnDigits(String(value)) : String(value));
 
 export default async function HomePage() {
-  const lang = await getLang();
+  const [lang, session] = await Promise.all([getLang(), readSession()]);
   const t = SITE_COPY[lang];
 
   return (
@@ -91,10 +114,14 @@ export default async function HomePage() {
       <FoodWaste t={t} lang={lang} />
       <Hunger t={t} />
       <Bridge t={t} />
+      <InAction t={t} />
       <HowItWorks t={t} />
       <Roles t={t} />
       <Impact t={t} lang={lang} />
+      <Sdgs t={t} />
+      <Money t={t} lang={lang} />
       <FinalCta t={t} />
+      <LandingAssistant role={session?.role ?? null} />
     </div>
   );
 }
@@ -105,13 +132,14 @@ function Hero({ t }: { t: SiteCopy }) {
   const h = t.hero;
   return (
     <section className="grain-night relative overflow-hidden">
-      {/* a real Dhaka night, pushed back so the words lead */}
+      {/* a volunteer serving food, pushed back so the words lead */}
       <Image
-        src={PHOTOS.heroRickshaw.src}
+        src={PHOTOS.heroVolunteer.src}
         alt={h.bgAlt}
         priority
         placeholder="blur"
         sizes="100vw"
+        style={{ objectPosition: PHOTOS.heroVolunteer.position }}
         className="absolute inset-0 -z-10 size-full animate-ken object-cover brightness-[0.4] saturate-[0.8]"
       />
       <div aria-hidden className="absolute inset-0 -z-10 bg-linear-to-r from-night-950 via-night-950/85 to-night-950/40" />
@@ -143,7 +171,7 @@ function Hero({ t }: { t: SiteCopy }) {
             {h.lede}
           </p>
 
-          <div className="mt-9 flex animate-rise flex-col gap-3 sm:flex-row" style={d(850)}>
+          <div className="mt-9 flex animate-rise flex-col gap-3 sm:flex-row sm:flex-wrap" style={d(850)}>
             <Link
               href="/register?role=donor"
               className="group inline-flex h-14 items-center justify-center gap-2 rounded-full bg-accent-400 px-7 text-base font-semibold text-night-950 shadow-[0_12px_40px_-10px_rgb(246_177_58/0.6)] transition-all duration-300 hover:-translate-y-0.5 hover:bg-accent-300"
@@ -151,13 +179,22 @@ function Hero({ t }: { t: SiteCopy }) {
               {h.ctaDonate}
               <ArrowIcon className="size-5 transition-transform duration-300 group-hover:translate-x-1" />
             </Link>
-            <Link
-              href="#how-it-works"
-              className="inline-flex h-14 items-center justify-center rounded-full border border-white/15 bg-white/5 px-7 text-base font-semibold text-cream-50 backdrop-blur transition-colors hover:bg-white/10"
+            <AssistantButton
+              message={t.action.chatStarter}
+              className="inline-flex h-14 items-center justify-center gap-2 rounded-full border border-white/15 bg-white/5 px-7 text-base font-semibold text-cream-50 backdrop-blur transition-colors hover:bg-white/10"
             >
-              {h.ctaHow}
-            </Link>
+              <ChatBubbleIcon className="size-5 text-accent-300" />
+              {h.ctaChat}
+            </AssistantButton>
           </div>
+          <p className="mt-4 flex animate-rise flex-wrap gap-x-5 gap-y-2 text-sm font-semibold" style={d(900)}>
+            <Link href="#in-action" className="text-mist-200 underline-offset-4 hover:text-cream-50 hover:underline">
+              {h.ctaHow} →
+            </Link>
+            <Link href="#donate-money" className="text-accent-300 underline-offset-4 hover:text-accent-200 hover:underline">
+              {h.ctaMoney} →
+            </Link>
+          </p>
 
           <ul className="mt-8 flex animate-rise flex-wrap gap-x-6 gap-y-2 text-sm text-mist-200" style={d(1000)}>
             {h.trust.map((item) => (
@@ -172,19 +209,20 @@ function Hero({ t }: { t: SiteCopy }) {
         <figure className="relative mx-auto w-full max-w-md animate-rise lg:max-w-none" style={d(600)}>
           <div className="relative overflow-hidden rounded-[2rem] shadow-[0_30px_80px_-20px_rgb(0_0_0/0.8)] ring-1 ring-white/10">
             <Image
-              src={PHOTOS.handsRice.src}
+              src={PHOTOS.hopeBoySmiling.src}
               alt={h.photoAlt}
               priority
               placeholder="blur"
               sizes="(min-width: 1024px) 420px, (min-width: 640px) 448px, 100vw"
-              className="aspect-[4/4.4] w-full object-cover brightness-[0.78] contrast-110 saturate-[0.75] sepia-[0.2]"
+              className="aspect-[4/4.4] w-full object-cover brightness-[0.85] saturate-[0.9]"
             />
-            <div aria-hidden className="absolute inset-0 bg-linear-to-t from-night-950 via-night-950/30 to-transparent" />
+            <div aria-hidden className="absolute inset-0 bg-linear-to-t from-night-950 via-night-950/20 to-transparent" />
             <figcaption className="absolute inset-x-0 bottom-0 p-6 font-display text-xl leading-snug text-cream-50 sm:text-2xl">
               <span aria-hidden className="mb-3 block h-px w-10 bg-accent-400" />
               {h.photoCaption}
             </figcaption>
           </div>
+          <Credit t={t} photo="hopeBoySmiling" className="mt-2 text-right" />
         </figure>
       </div>
 
@@ -203,7 +241,6 @@ function Hero({ t }: { t: SiteCopy }) {
             </div>
           ))}
         </dl>
-        <Credit t={t} photo="heroRickshaw" className="mt-3 text-right" />
       </div>
     </section>
   );
@@ -252,6 +289,61 @@ function FoodWaste({ t, lang }: { t: SiteCopy; lang: Lang }) {
           </dl>
         </div>
         <Source>{w.clockSource}</Source>
+
+        {/* published charts and headlines about Bangladesh */}
+        <div className="mt-16">
+          <h3 className="reveal font-display text-2xl font-semibold text-cream-50 sm:text-3xl">{w.chartsTitle}</h3>
+          <p className="reveal mt-2 max-w-2xl text-mist-300">{w.chartsLede}</p>
+          <div className="mt-6 grid gap-5 lg:grid-cols-2">
+            {w.charts.map((c, i) => {
+              const src = c.key === "household" ? chartHouseholdWaste : chartWasteComposition;
+              return (
+                <figure key={c.key} className="reveal flex flex-col rounded-[2rem] border border-white/5 bg-night-900 p-5 sm:p-6" style={d(i * 100)}>
+                  <a
+                    href={src.src}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="group block overflow-hidden rounded-2xl bg-white ring-1 ring-white/10"
+                    aria-label={`${c.title}: ${w.viewFull}`}
+                  >
+                    <Image
+                      src={src}
+                      alt={c.caption}
+                      placeholder="blur"
+                      sizes="(min-width: 1024px) 540px, 100vw"
+                      className="aspect-[16/9] w-full object-contain transition-transform duration-500 group-hover:scale-[1.02]"
+                    />
+                  </a>
+                  <figcaption className="mt-4">
+                    <h4 className="font-display text-lg font-semibold text-cream-50">{c.title}</h4>
+                    <p className="mt-1 text-sm leading-relaxed text-mist-300">{c.caption}</p>
+                    <p className="mt-2 text-xs text-mist-400">— {c.source}</p>
+                  </figcaption>
+                </figure>
+              );
+            })}
+          </div>
+
+          <h4 className="reveal mt-10 flex items-center gap-3 text-sm font-semibold tracking-widest text-accent-300 uppercase">
+            <span className="h-px w-8 bg-accent-400" />
+            {w.newsTitle}
+          </h4>
+          <NewsMarquee
+            labels={{ hint: w.newsHint, close: w.newsClose }}
+            items={w.news.map((n) => {
+              const photo = n.photo ? PHOTOS[n.photo] : null;
+              return {
+                image: n.poster ? NEWS[n.poster] : photo!.src,
+                poster: !!n.poster,
+                position: photo?.position,
+                headline: n.headline,
+                highlight: n.highlight,
+                text: n.text,
+                source: n.source,
+              };
+            })}
+          />
+        </div>
 
         {/* comparison + whole chain */}
         <div className="mt-12 grid gap-5 lg:grid-cols-2">
@@ -352,11 +444,30 @@ function Hunger({ t }: { t: SiteCopy }) {
         </div>
 
         <h3 className="reveal mt-20 font-display text-2xl font-semibold text-cream-50 sm:text-3xl">{h.storiesTitle}</h3>
-        <div className="mt-6 grid gap-5 md:grid-cols-3">
+        <p className="reveal mt-2 max-w-2xl text-mist-300">{h.storiesLede}</p>
+        {/* photo grid: one tall lead photo, the rest around it, and a way to help at the end */}
+        <ul className="mt-6 grid auto-rows-76 gap-4 sm:grid-cols-2 lg:grid-cols-3 lg:auto-rows-68">
           {h.stories.map((s, i) => (
-            <StoryCard key={s.photo} t={t} story={s} delay={i * 80} sizes="(min-width: 768px) 360px, 100vw" />
+            <li
+              key={s.photo}
+              className={cn(i === 0 && "sm:row-span-2", i === h.stories.length - 1 && "lg:col-span-2")}
+            >
+              <PhotoTile t={t} story={s} delay={(i % 3) * 80} large={i === 0} />
+            </li>
           ))}
-        </div>
+          <li className="reveal flex flex-col justify-between rounded-3xl border border-accent-400/30 bg-linear-to-br from-accent-500/20 via-night-950 to-night-950 p-6">
+            <HomeHeartIcon className="size-9 text-accent-300" />
+            <div>
+              <p className="font-display text-2xl leading-snug font-semibold text-cream-50">{t.hero.photoCaption}</p>
+              <Link
+                href="/register?role=donor"
+                className="mt-5 inline-flex h-11 items-center gap-2 rounded-full bg-accent-400 px-5 text-sm font-semibold text-night-950 hover:bg-accent-300"
+              >
+                {t.nav.donate} <ArrowIcon className="size-4" />
+              </Link>
+            </div>
+          </li>
+        </ul>
       </div>
     </section>
   );
@@ -427,6 +538,253 @@ function BridgeDiagram({ nodes, notes }: { nodes: string[]; notes: string[] }) {
         </li>
       ))}
     </ol>
+  );
+}
+
+/* ------------------------------------------------------------ IN ACTION */
+
+/** What FoodBridge does, told as five photo chapters, each with a glimpse of what people see in the app. */
+function InAction({ t }: { t: SiteCopy }) {
+  const a = t.action;
+  return (
+    <section id="in-action" className="grain-night relative scroll-mt-20 overflow-hidden bg-night-900 py-20 md:py-28">
+      <div
+        aria-hidden
+        className="absolute top-1/3 -left-40 size-136 rounded-full bg-[radial-gradient(closest-side,rgb(26_125_79/0.16),transparent)]"
+      />
+      <div className="relative mx-auto max-w-6xl px-4 sm:px-6">
+        <SectionHeading eyebrow={a.eyebrow} title={a.title} lede={a.lede} />
+
+        <ol className="relative mt-16 space-y-14 lg:space-y-20">
+          <li aria-hidden className="absolute top-4 bottom-4 left-1/2 hidden w-px -translate-x-1/2 list-none bg-linear-to-b from-accent-400/60 via-white/10 to-brand-400/60 lg:block" />
+          {a.chapters.map((c, i) => {
+            const photo = PHOTOS[c.photo];
+            const flip = i % 2 === 1;
+            return (
+              <li key={c.tag} className="reveal relative grid items-center gap-6 lg:grid-cols-2 lg:gap-16" style={d(60)}>
+                <span
+                  aria-hidden
+                  className="absolute top-1/2 left-1/2 hidden size-4 -translate-x-1/2 -translate-y-1/2 rounded-full bg-accent-400 ring-8 ring-night-900 lg:block"
+                />
+                <figure className={cn("group relative overflow-hidden rounded-3xl ring-1 ring-white/10", flip && "lg:order-2")}>
+                  <Image
+                    src={photo.src}
+                    alt={c.title}
+                    placeholder="blur"
+                    sizes="(min-width: 1024px) 520px, 100vw"
+                    style={photo.position ? { objectPosition: photo.position } : undefined}
+                    className="aspect-4/3 w-full object-cover brightness-[0.85] saturate-[0.9] transition-transform duration-700 group-hover:scale-[1.03]"
+                  />
+                  <div aria-hidden className="absolute inset-0 bg-linear-to-t from-night-950/60 via-transparent to-transparent" />
+                  <span className="absolute top-4 left-4 rounded-full bg-night-950/80 px-3 py-1 text-xs font-semibold text-accent-200 backdrop-blur">
+                    {c.tag}
+                  </span>
+                </figure>
+                <div className={cn(flip && "lg:order-1 lg:text-right")}>
+                  <h3 className="font-display text-2xl leading-snug font-semibold text-cream-50 sm:text-3xl">{c.title}</h3>
+                  <p className="mt-3 leading-relaxed text-mist-300">{c.text}</p>
+                  <div className={cn("mt-6 flex", flip && "lg:justify-end")}>
+                    <ChapterGlimpse t={t} index={i} />
+                  </div>
+                  <Credit t={t} photo={c.photo} className="mt-3" />
+                </div>
+              </li>
+            );
+          })}
+        </ol>
+
+        <div className="mt-20 grid gap-5 lg:grid-cols-2">
+          <div className="reveal rounded-4xl border border-white/10 bg-night-950/60 p-7 sm:p-9">
+            <h3 className="font-display text-2xl font-semibold text-cream-50">{a.easyTitle}</h3>
+            <ul className="mt-6 space-y-4">
+              {a.easy.map((item) => (
+                <li key={item} className="flex gap-3 text-mist-200">
+                  <span className="mt-0.5 grid size-6 shrink-0 place-items-center rounded-full bg-brand-500/20 text-brand-200">
+                    <CheckIcon className="size-3.5" />
+                  </span>
+                  {item}
+                </li>
+              ))}
+            </ul>
+          </div>
+
+          <div className="reveal relative overflow-hidden rounded-4xl border border-accent-400/25 bg-linear-to-br from-accent-500/15 via-night-950 to-night-950 p-7 sm:p-9" style={d(100)}>
+            <h3 className="flex items-center gap-3 font-display text-2xl font-semibold text-cream-50">
+              <span className="grid size-10 place-items-center rounded-full bg-accent-400 text-night-950">
+                <ChatBubbleIcon className="size-5" />
+              </span>
+              {a.chatTitle}
+            </h3>
+            <p className="mt-3 text-mist-300">{a.chatText}</p>
+            <div aria-hidden className="mt-6 space-y-2.5">
+              {a.chatSample.map((m, i) => (
+                <p
+                  key={i}
+                  className={cn(
+                    "w-fit max-w-[85%] rounded-2xl px-3.5 py-2 text-sm",
+                    m.from === "you" ? "ml-auto rounded-br-md bg-accent-400 text-night-950" : "rounded-bl-md bg-white/[0.07] text-cream-100",
+                  )}
+                >
+                  {m.text}
+                </p>
+              ))}
+            </div>
+            <AssistantButton
+              message={a.chatStarter}
+              className="mt-7 inline-flex h-12 items-center gap-2 rounded-full bg-accent-400 px-6 font-semibold text-night-950 transition-all hover:-translate-y-0.5 hover:bg-accent-300"
+            >
+              {a.chatCta} <ArrowIcon className="size-4" />
+            </AssistantButton>
+          </div>
+        </div>
+      </div>
+    </section>
+  );
+}
+
+/** A small mock of the app at each chapter: the request, the alert, the donor's answer, the delivery, the meals. */
+function ChapterGlimpse({ t, index }: { t: SiteCopy; index: number }) {
+  const a = t.action;
+  const card = "w-full max-w-sm rounded-2xl border border-white/10 bg-night-950/80 p-4 text-left shadow-[0_20px_50px_-20px_rgb(0_0_0/0.8)]";
+  switch (index) {
+    case 0:
+      return (
+        <div aria-hidden className={card}>
+          <p className="text-[11px] font-semibold tracking-widest text-brand-200 uppercase">{t.roles.ngo.tag}</p>
+          <p className="mt-1 font-semibold text-cream-50">{a.demoNeed}</p>
+          <p className="mt-1 text-xs text-mist-400">{a.demoMeta}</p>
+        </div>
+      );
+    case 1:
+      return (
+        <div aria-hidden className="flex w-full max-w-sm flex-col gap-2">
+          {["WhatsApp", "SMS", "FoodBridge"].map((channel, i) => (
+            <div key={channel} className={cn(card, "flex items-center gap-3 p-3", i > 0 && "opacity-80")} style={{ marginLeft: `${i * 12}px` }}>
+              <span className="grid size-8 shrink-0 place-items-center rounded-full bg-accent-400/15 text-accent-300">
+                <BellIcon className="size-4" />
+              </span>
+              <span className="min-w-0">
+                <span className="block text-[11px] text-mist-400">{channel}</span>
+                <span className="block truncate text-sm text-cream-50">{a.demoNeed}</span>
+              </span>
+            </div>
+          ))}
+        </div>
+      );
+    case 2:
+      return (
+        <div aria-hidden className={card}>
+          <p className="text-[11px] font-semibold tracking-widest text-accent-300 uppercase">{a.demoTitle}</p>
+          <p className="mt-1 font-semibold text-cream-50">{a.demoNeed}</p>
+          <p lang="bn" className="mt-3 rounded-xl rounded-tl-sm bg-brand-500/15 px-3 py-2 text-sm text-brand-100">
+            {a.demoComment}
+          </p>
+          <p className="mt-1 text-[11px] text-mist-400">{a.demoCommentBy}</p>
+          <div className="mt-3 flex gap-2">
+            <span className="rounded-full bg-accent-400 px-3 py-1.5 text-xs font-semibold text-night-950">{a.demoApprove}</span>
+            <span className="rounded-full border border-white/15 px-3 py-1.5 text-xs font-semibold text-cream-50">{a.demoReply}</span>
+          </div>
+        </div>
+      );
+    case 3:
+      return (
+        <div aria-hidden className={cn(card, "flex items-center gap-3")}>
+          <span className="grid size-9 shrink-0 place-items-center rounded-full bg-brand-500 text-white">
+            <BikeIcon className="size-5" />
+          </span>
+          <span className="text-sm text-cream-50">{a.demoConfirmed}</span>
+        </div>
+      );
+    default:
+      return (
+        <div aria-hidden className={cn(card, "flex items-center gap-3")}>
+          <span className="font-display text-3xl font-semibold text-accent-300">+40</span>
+          <span className="text-sm text-mist-200">{t.impact.stats[0]}</span>
+        </div>
+      );
+  }
+}
+
+/* --------------------------------------------------------------- SDGs */
+
+function Sdgs({ t }: { t: SiteCopy }) {
+  const s = t.sdg;
+  const [hunger, waste, ...also] = s.goals;
+  return (
+    <section id="sdg" className="scroll-mt-20 py-20 md:py-28">
+      <div className="mx-auto max-w-6xl px-4 sm:px-6">
+        <SectionHeading eyebrow={s.eyebrow} title={s.title} lede={s.lede} />
+
+        <p className="reveal mt-12 inline-flex items-center gap-2 rounded-full bg-accent-400 px-3.5 py-1 text-xs font-bold tracking-widest text-night-950 uppercase">
+          <span aria-hidden className="size-1.5 rounded-full bg-night-950" />
+          {s.primary}
+        </p>
+        <div className="mt-5 grid gap-5 lg:grid-cols-[0.8fr_1.2fr]">
+          {[hunger, waste].map((g, i) => (
+            <article
+              key={g.goal}
+              className="reveal flex flex-col overflow-hidden rounded-4xl border border-accent-400/30 bg-night-900 shadow-[0_30px_60px_-30px_rgb(246_177_58/0.35)]"
+              style={d(i * 100)}
+            >
+              <div className={cn("relative bg-white", i === 0 ? "p-6" : "")}>
+                <Image
+                  src={SDG_IMAGE[g.goal]}
+                  alt={g.title}
+                  placeholder="blur"
+                  sizes={i === 0 ? "(min-width: 1024px) 400px, 100vw" : "(min-width: 1024px) 640px, 100vw"}
+                  className={cn("w-full", i === 0 ? "mx-auto aspect-square max-h-64 object-contain" : "aspect-video object-cover")}
+                />
+              </div>
+              <div className="flex-1 p-6 sm:p-7">
+                <h3 className="font-display text-2xl font-semibold text-cream-50">{g.title}</h3>
+                <p className="mt-2 leading-relaxed text-mist-300">{g.how}</p>
+              </div>
+            </article>
+          ))}
+        </div>
+
+        <p className="reveal mt-12 text-sm font-semibold tracking-widest text-mist-300 uppercase">{s.also}</p>
+        <div className="mt-5 grid gap-5 md:grid-cols-3">
+          {also.map((g, i) => (
+            <article key={g.goal} className="reveal flex gap-4 rounded-3xl border border-white/10 bg-night-900 p-5" style={d(i * 80)}>
+              <Image
+                src={SDG_IMAGE[g.goal]}
+                alt={g.title}
+                placeholder="blur"
+                sizes="96px"
+                className="size-20 shrink-0 rounded-xl object-cover sm:size-24"
+              />
+              <div>
+                <h3 className="font-display text-lg leading-snug font-semibold text-cream-50">{g.title}</h3>
+                <p className="mt-1 text-sm leading-relaxed text-mist-300">{g.how}</p>
+              </div>
+            </article>
+          ))}
+        </div>
+      </div>
+    </section>
+  );
+}
+
+/* ---------------------------------------------------------- DONATE MONEY */
+
+function Money({ t, lang }: { t: SiteCopy; lang: Lang }) {
+  const m = t.money;
+  return (
+    <section id="donate-money" className="scroll-mt-20 px-4 pb-4 sm:px-6">
+      <div className="reveal mx-auto grid max-w-6xl gap-8 overflow-hidden rounded-4xl border border-brand-400/25 bg-linear-to-br from-brand-950 via-night-900 to-night-950 p-7 sm:p-10 lg:grid-cols-[1fr_1fr] lg:items-center">
+        <div>
+          <Eyebrow>{m.eyebrow}</Eyebrow>
+          <h2 className="mt-4 font-display text-3xl leading-tight font-semibold text-cream-50 sm:text-4xl">{m.title}</h2>
+          <p className="mt-4 max-w-md leading-relaxed text-mist-300">{m.text}</p>
+        </div>
+        <DonateMoney
+          lang={lang}
+          amounts={m.amounts}
+          labels={{ other: m.other, cta: m.cta, soon: m.soon, note: m.note, meals: m.meals }}
+        />
+      </div>
+    </section>
   );
 }
 
@@ -653,21 +1011,6 @@ function Impact({ t, lang }: { t: SiteCopy; lang: Lang }) {
         </Suspense>
       </div>
 
-      <div className="relative mx-auto mt-16 max-w-6xl px-4 sm:px-6">
-        <div className="reveal flex flex-col gap-4 border-t border-white/10 pt-8 md:flex-row md:items-center md:justify-between">
-          <p className="text-sm font-semibold text-mist-200">{im.sdgTitle}</p>
-          <ul className="flex flex-wrap gap-2">
-            {im.sdgs.map((goal) => (
-              <li
-                key={goal}
-                className="rounded-full border border-white/10 bg-white/[0.03] px-3.5 py-1.5 text-xs font-medium text-mist-300"
-              >
-                {goal}
-              </li>
-            ))}
-          </ul>
-        </div>
-      </div>
     </section>
   );
 }
@@ -779,7 +1122,7 @@ function Credit({ t, photo, className }: { t: SiteCopy; photo: PhotoKey; classNa
         rel="noopener noreferrer"
         className="underline-offset-2 hover:text-mist-200 hover:underline"
       >
-        {credit.author}, {credit.license}, {t.photo.via}
+        {credit.license ? `${credit.author}, ${credit.license}, ${t.photo.via}` : credit.author}
       </a>
     </p>
   );
@@ -823,6 +1166,30 @@ function StoryCard({
       <figcaption className="mt-4">
         <h4 className={cn("font-display font-semibold text-cream-50", large ? "text-2xl" : "text-lg")}>{story.title}</h4>
         <p className="mt-1.5 text-sm leading-relaxed text-mist-300">{story.text}</p>
+        <Credit t={t} photo={story.photo} className="mt-2" />
+      </figcaption>
+    </figure>
+  );
+}
+
+/** A photo with its title and short story laid over it (the hunger grid). */
+function PhotoTile({ t, story, delay = 0, large }: { t: SiteCopy; story: { photo: PhotoKey; title: string; text: string }; delay?: number; large?: boolean }) {
+  const photo = PHOTOS[story.photo];
+  return (
+    <figure className="reveal group relative h-full overflow-hidden rounded-3xl bg-night-800 ring-1 ring-white/10" style={d(delay)}>
+      <Image
+        src={photo.src}
+        alt={story.title}
+        placeholder="blur"
+        fill
+        sizes="(min-width: 1024px) 380px, (min-width: 640px) 50vw, 100vw"
+        style={photo.position ? { objectPosition: photo.position } : undefined}
+        className="object-cover brightness-[0.8] saturate-[0.85] transition-all duration-700 group-hover:scale-[1.04] group-hover:brightness-90"
+      />
+      <div aria-hidden className="absolute inset-0 bg-linear-to-t from-night-950 via-night-950/40 to-transparent" />
+      <figcaption className="absolute inset-x-0 bottom-0 p-5 sm:p-6">
+        <h4 className={cn("font-display font-semibold text-cream-50", large ? "text-2xl sm:text-3xl" : "text-xl")}>{story.title}</h4>
+        <p className={cn("mt-1.5 leading-relaxed text-mist-200", large ? "text-base" : "text-sm")}>{story.text}</p>
         <Credit t={t} photo={story.photo} className="mt-2" />
       </figcaption>
     </figure>

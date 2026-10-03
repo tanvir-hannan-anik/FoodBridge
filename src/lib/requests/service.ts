@@ -3,7 +3,7 @@ import "server-only";
 import { alias } from "drizzle-orm/pg-core";
 import { and, asc, desc, eq, gt, gte, ilike, inArray, isNull, lte, notExists, or, sql } from "drizzle-orm";
 import { getDb } from "@/db";
-import { donations, foodNeeds, foodRequests, users, type FoodCategory, type FoodNeed, type Unit } from "@/db/schema";
+import { donations, foodNeeds, foodRequests, needResponses, users, type FoodCategory, type FoodNeed, type Unit } from "@/db/schema";
 import { mealsCounted, notify } from "@/lib/donations/service";
 import { distanceKm, formatDistance, toPoint, type LatLng } from "@/lib/geo";
 import { allocationFor, compareCandidates, MATCH_RULES, scoreCandidate } from "@/lib/matching/meta";
@@ -100,6 +100,7 @@ export async function createNeed(ngoId: string, input: NeedInput) {
   const db = await getDb();
   const [row] = await db.insert(foodNeeds).values({ ngoId, ...input }).returning({ id: foodNeeds.id });
   await matchOpenNeeds({ needId: row.id });
+  await notifyDonorsOfNeed(row.id);
   return row.id;
 }
 
@@ -348,5 +349,204 @@ export async function listAllNeeds(filters: NeedFilters = {}, limit = 100) {
 export async function countPendingNeeds() {
   const items = await listAllNeeds({ stage: "pending" }, 500);
   return items.length;
+}
+
+/* ------------------------------------------------- donors answer NGO requests */
+
+const ngo = alias(users, "ngo");
+
+/**
+ * Open NGO food requests a donor can help with: still needing meals, not past their time, from
+ * verified NGOs, and within MATCH_RULES.maxDistanceKm of the donor when both are pinned (unpinned
+ * ones are still shown). Nearest first, then soonest. Includes the donor's own reply, if any.
+ */
+export async function listOpenNeedsForDonor(donor: { id: string; lat: number | null; lng: number | null }, limit = 30) {
+  const db = await getDb();
+  const rows = await db
+    .select({
+      need: foodNeeds,
+      ngoName: sql<string>`coalesce(${ngo.organizationName}, ${ngo.name})`,
+      ngoLat: ngo.lat,
+      ngoLng: ngo.lng,
+      myMessage: needResponses.message,
+      myDonationId: needResponses.donationId,
+      replies: sql<number>`(select count(*)::int from need_responses r where r.need_id = ${foodNeeds.id})`,
+    })
+    .from(foodNeeds)
+    .innerJoin(ngo, eq(ngo.id, foodNeeds.ngoId))
+    .leftJoin(needResponses, and(eq(needResponses.needId, foodNeeds.id), eq(needResponses.donorId, donor.id)))
+    .where(and(eq(foodNeeds.status, "OPEN"), gt(foodNeeds.neededBy, new Date()), eq(ngo.status, "active")))
+    .orderBy(asc(foodNeeds.neededBy))
+    .limit(200);
+  const allocations = await loadAllocations(rows.map((r) => r.need.id));
+  const home = toPoint(donor.lat, donor.lng);
+  return rows
+    .map(({ need, ngoName, ngoLat, ngoLng, myMessage, myDonationId, replies }) => ({
+      ...summarize(need, allocations),
+      ngoName,
+      myMessage,
+      myDonationId,
+      replies,
+      km: distanceKm(home, toPoint(need.lat, need.lng) ?? toPoint(ngoLat, ngoLng)),
+    }))
+    .filter((n) => n.progress.remaining > 0 && (n.km === null || n.km <= MATCH_RULES.maxDistanceKm))
+    .sort((a, b) => (a.km ?? 99) - (b.km ?? 99) || a.neededBy.getTime() - b.neededBy.getTime())
+    .slice(0, limit);
+}
+
+export type OpenNeedForDonor = Awaited<ReturnType<typeof listOpenNeedsForDonor>>[number];
+
+/** One open request from a verified NGO, for pre-filling the donation form ("post food for this request"). */
+export async function getOpenNeed(needId: string) {
+  const db = await getDb();
+  const [row] = await db
+    .select({ need: foodNeeds, ngoName: sql<string>`coalesce(${ngo.organizationName}, ${ngo.name})`, ngoLat: ngo.lat, ngoLng: ngo.lng })
+    .from(foodNeeds)
+    .innerJoin(ngo, eq(ngo.id, foodNeeds.ngoId))
+    .where(and(eq(foodNeeds.id, needId), eq(foodNeeds.status, "OPEN"), gt(foodNeeds.neededBy, new Date()), eq(ngo.status, "active")));
+  if (!row) return null;
+  const allocations = await loadAllocations([needId]);
+  return { ...summarize(row.need, allocations), ngoName: row.ngoName, target: toPoint(row.need.lat, row.need.lng) ?? toPoint(row.ngoLat, row.ngoLng) };
+}
+
+/** A donor's reply to an open request. One per donor and request (a new reply replaces the old); the NGO is told. */
+export async function respondToNeed(donorId: string, needId: string, message: string): Promise<string | null> {
+  const need = await getOpenNeed(needId);
+  if (!need) return "This request is no longer open.";
+  const db = await getDb();
+  const [me] = await db.select({ name: sql<string>`coalesce(${users.organizationName}, ${users.name})` }).from(users).where(eq(users.id, donorId));
+  await db.transaction(async (tx) => {
+    await tx
+      .insert(needResponses)
+      .values({ needId, donorId, message })
+      .onConflictDoUpdate({ target: [needResponses.needId, needResponses.donorId], set: { message, updatedAt: new Date() } });
+    await notify(tx, need.ngoId, null, "need_response", `${me?.name ?? "A donor"} replied to your request “${need.foodType || "Any food"}”: “${message}”`, { needId });
+  });
+  return null;
+}
+
+/** Donor replies on one of the NGO's own requests, newest first. */
+export async function listNeedResponses(ngoId: string, needId: string) {
+  const db = await getDb();
+  return db
+    .select({
+      id: needResponses.id,
+      message: needResponses.message,
+      updatedAt: needResponses.updatedAt,
+      donationId: needResponses.donationId,
+      donorName: sql<string>`coalesce(${donor.organizationName}, ${donor.name})`,
+      donorArea: donor.area,
+    })
+    .from(needResponses)
+    .innerJoin(foodNeeds, eq(foodNeeds.id, needResponses.needId))
+    .innerJoin(donor, eq(donor.id, needResponses.donorId))
+    .where(and(eq(needResponses.needId, needId), eq(foodNeeds.ngoId, ngoId)))
+    .orderBy(desc(needResponses.updatedAt));
+}
+
+/**
+ * The donor posted food "for" a request: it's proposed to that NGO straight away (MATCHED, so the
+ * NGO confirms it exactly like a system match, then a volunteer is offered the pickup). The donor's
+ * choice replaces any system match still waiting on that request. Returns false (normal matching
+ * then applies) when the food doesn't fit: ready after the needed-by time, not fresh enough, or
+ * paused for a safety check.
+ */
+export async function proposeDonationToNeed(donorId: string, donationId: string, needId: string) {
+  const need = await getOpenNeed(needId);
+  if (!need || need.progress.remaining <= 0) return false;
+  const db = await getDb();
+  const now = new Date();
+  const [food] = await db
+    .select({
+      id: donations.id,
+      foodType: donations.foodType,
+      quantity: donations.quantity,
+      unit: donations.unit,
+      meals: donations.mealsEstimate,
+      expiresAt: donations.expiresAt,
+      pickupLat: donations.pickupLat,
+      pickupLng: donations.pickupLng,
+      donorLat: donor.lat,
+      donorLng: donor.lng,
+      donorName: sql<string>`coalesce(${donor.organizationName}, ${donor.name})`,
+    })
+    .from(donations)
+    .innerJoin(donor, eq(donor.id, donations.donorId))
+    .where(
+      and(
+        eq(donations.id, donationId),
+        eq(donations.donorId, donorId),
+        eq(donations.status, "PENDING"),
+        isNull(donations.safetyFlag),
+        gt(donations.expiresAt, new Date(now.getTime() + MATCH_RULES.minFreshMinutes * 60_000)),
+        lte(donations.pickupAt, need.neededBy),
+      ),
+    );
+  if (!food) return false;
+
+  const alloc = allocationFor(food, need.progress.remaining);
+  const km = distanceKm(toPoint(food.pickupLat, food.pickupLng) ?? toPoint(food.donorLat, food.donorLng), need.target);
+  return db.transaction(async (tx) => {
+    // Only one match waits on a request at a time.
+    await tx
+      .update(foodRequests)
+      .set({ status: "CANCELLED", updatedAt: now })
+      .where(and(eq(foodRequests.needId, needId), eq(foodRequests.status, "MATCHED")));
+    const [row] = await tx
+      .insert(foodRequests)
+      .values({
+        donationId: food.id,
+        ngoId: need.ngoId,
+        needId,
+        status: "MATCHED",
+        quantity: alloc.quantity,
+        people: Math.max(1, Math.min(need.progress.remaining, alloc.meals)),
+        preferredAt: food.expiresAt < need.neededBy ? food.expiresAt : need.neededBy,
+        distanceKm: km,
+      })
+      .onConflictDoNothing()
+      .returning({ id: foodRequests.id });
+    if (!row) return false;
+    await tx
+      .insert(needResponses)
+      .values({ needId, donorId, message: "I posted food for this request.", donationId: food.id })
+      .onConflictDoUpdate({ target: [needResponses.needId, needResponses.donorId], set: { donationId: food.id, updatedAt: now } });
+    await notify(
+      tx,
+      need.ngoId,
+      food.id,
+      "request_matched",
+      `${food.donorName} posted food for your request: “${food.foodType}” (~${alloc.meals} meals). Accept or reject it.`,
+      { requestId: row.id, needId },
+    );
+    return true;
+  });
+}
+
+/**
+ * Tells verified donors near a new request that an NGO needs food, so they don't have to keep
+ * checking the site (linked WhatsApp/Messenger chats get it too). At most 40 donors: pinned ones
+ * within MATCH_RULES.maxDistanceKm (nearest first), else those whose area mentions the request's.
+ */
+export async function notifyDonorsOfNeed(needId: string) {
+  const need = await getOpenNeed(needId);
+  if (!need) return 0;
+  const db = await getDb();
+  const place = need.area.split(",")[0].trim().toLowerCase();
+  const donors = await db
+    .select({ id: users.id, lat: users.lat, lng: users.lng, area: users.area, address: users.address })
+    .from(users)
+    .where(and(eq(users.role, "donor"), eq(users.status, "active")));
+  const nearby = donors
+    .map((d) => ({ ...d, km: distanceKm(toPoint(d.lat, d.lng), need.target) }))
+    .filter((d) => (d.km !== null ? d.km <= MATCH_RULES.maxDistanceKm : !!place && [d.area, d.address].some((t) => t?.toLowerCase().includes(place))))
+    .sort((a, b) => (a.km ?? 99) - (b.km ?? 99))
+    .slice(0, 40);
+  if (!nearby.length) return 0;
+  const message = `${need.ngoName} needs ${need.foodType || "food"} for ${need.people} people in ${need.area}. Can you help?`;
+  await db.transaction(async (tx) => {
+    for (const d of nearby) await notify(tx, d.id, null, "need_posted", message, { needId });
+  });
+  return nearby.length;
 }
 

@@ -3,7 +3,11 @@ import Link from "next/link";
 import { DonationForm } from "@/components/donor/donation-form";
 import { PageHeader } from "@/components/layout/page-header";
 import { decodeDraft, donationDraftSchema } from "@/lib/ai/schemas";
+import { Alert } from "@/components/ui";
 import { requireRole } from "@/lib/auth/dal";
+import { CATEGORY_LABEL } from "@/lib/donations/meta";
+import { getOpenNeed } from "@/lib/requests/service";
+import { isId } from "@/lib/utils";
 import { getI18n } from "@/lib/i18n-server";
 
 export async function generateMetadata(): Promise<Metadata> {
@@ -20,7 +24,27 @@ const NEXT_STEPS = [
 
 export default async function DonatePage({ searchParams }: PageProps<"/donor/donate">) {
   const donor = await requireRole("donor");
-  const { t, number } = await getI18n();
+  const { t, number, dateTime } = await getI18n();
+  const params = await searchParams;
+  // "Post food for this request": pre-fill from the NGO's request, and offer the food to that NGO first.
+  const need = typeof params.need === "string" && isId(params.need) ? await getOpenNeed(params.need) : null;
+  const draft =
+    decodeDraft(donationDraftSchema, params.draft) ??
+    (need
+      ? {
+          foodType: need.foodType,
+          category: need.category,
+          quantity: null,
+          unit: need.unit,
+          condition: null,
+          preparedMinutesAgo: null,
+          bestBeforeInHours: null,
+          pickupInMinutes: null,
+          pickupAddress: null,
+          instructions: null,
+          missing: [],
+        }
+      : null);
   return (
     <>
       <Link href="/donor" className="text-sm font-medium text-ink-500 hover:text-brand-800">
@@ -34,10 +58,22 @@ export default async function DonatePage({ searchParams }: PageProps<"/donor/don
         />
       </div>
 
+      {need && (
+        <Alert tone="info" title={t("For {ngo}’s request", { ngo: need.ngoName })} className="mb-6">
+          {t("They need {food} for {n} people in {area} by {time}. Your food is offered to them first; they confirm it, then a volunteer collects it.", {
+            food: need.foodType || t(need.category ? CATEGORY_LABEL[need.category] : "Any food"),
+            n: number(need.progress.remaining),
+            area: need.area,
+            time: dateTime(need.neededBy),
+          })}
+        </Alert>
+      )}
+
       <div className="grid gap-8 lg:grid-cols-[1fr_320px] lg:items-start">
         <DonationForm
           defaults={{
-            draft: decodeDraft(donationDraftSchema, (await searchParams).draft),
+            needId: need?.id ?? null,
+            draft,
             contactName: donor.name,
             contactPhone: donor.phone,
             pickupAddress: donor.address ?? "",

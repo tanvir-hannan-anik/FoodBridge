@@ -20,12 +20,25 @@ import type { PhotoKey } from "./photos";
 export const WASTE_KG_PER_SECOND = 14_100_000_000 / (365 * 24 * 60 * 60);
 
 type Story = { photo: PhotoKey; title: string; text: string };
+type Chapter = Story & { tag: string };
+/** A news story: a published news card image (`poster`), or a card drawn over one of our photos. */
+export type NewsItem = {
+  poster?: "news14m" | "newsWb" | "news34";
+  photo?: PhotoKey;
+  headline: string;
+  /** Part of the headline shown in the accent colour (drawn cards only). */
+  highlight?: string;
+  /** The line shown when the story is opened. */
+  text: string;
+  source: string;
+};
+type Goal = { goal: "sdg2" | "sdg12" | "sdg13" | "sdg17" | "sdg1"; title: string; how: string };
 
 const en = {
   meta: {
     title: "Food Donation in Bangladesh: Donate Surplus Food & Fight Hunger | FoodBridge",
     description:
-      "Bangladeshi households waste 14.1 million tonnes of food a year while 45 million people face food insecurity. FoodBridge connects surplus food from restaurants, weddings and homes in Dhaka with verified NGOs and volunteers.",
+      "Bangladeshi households waste 14.1 million tonnes of food a year while 45 million people face food insecurity. FoodBridge connects surplus food from homes, restaurants, weddings and shops anywhere in Bangladesh with verified NGOs and volunteers.",
   },
   nav: {
     problem: "Food waste",
@@ -41,16 +54,18 @@ const en = {
   },
   photo: { credit: "Photo", via: "Wikimedia Commons" },
   hero: {
-    kicker: "Surplus food donation in Bangladesh",
-    title1: "Tonight, good food will be thrown away in Dhaka.",
-    title2: "A few streets away, someone will sleep hungry.",
-    lede: "FoodBridge is the bridge between the two. Restaurants, wedding halls, shops and homes post the food they have left. A verified NGO nearby accepts it, and a volunteer carries it across the city while it’s still fresh.",
+    kicker: "Surplus food donation across Bangladesh",
+    title1: "Put a smile",
+    title2: "on their faces.",
+    lede: "Every night good food is thrown away while, not far off, someone sleeps hungry. FoodBridge is the bridge between the two, in every city and town in Bangladesh: you share the food you have left, a verified NGO nearby confirms it, and a volunteer carries it to people who need it while it’s still fresh.",
     ctaDonate: "Donate surplus food",
     ctaHow: "See how it works",
+    ctaChat: "Donate by chatting",
+    ctaMoney: "Donate money",
     trust: ["Free for donors", "Verified NGOs", "Food-safety checks on every post"],
-    bgAlt: "A rickshaw puller on a Dhaka street at night.",
-    photoAlt: "Many open hands reaching towards a handful of rice.",
-    photoCaption: "The food exists. It just doesn’t reach the hands waiting for it.",
+    bgAlt: "A volunteer handing plates of food to children waiting in line.",
+    photoAlt: "A smiling boy eating a plate of biryani.",
+    photoCaption: "One shared plate, one smile. That’s what your leftover food can do.",
     strip: [
       { value: "14.1M t", label: "of food wasted by households every year", source: "UNEP 2024" },
       { value: "45.4M", label: "people can’t count on enough food", source: "FAO 2026" },
@@ -98,6 +113,88 @@ const en = {
     chainSource: "World Bank study presented in Dhaka, 29 September 2025",
     marketAlt: "Crowds and heaped trays of food at the Chawkbazar iftar market in Old Dhaka.",
     marketCaption: "Chawkbazar, Old Dhaka: plenty on display every Ramadan evening. What isn’t sold by night often isn’t eaten.",
+    chartsTitle: "Bangladesh in charts",
+    chartsLede: "What the research and the news say about the food we throw away.",
+    charts: [
+      {
+        key: "household",
+        title: "Households lead food waste",
+        caption: "Household food waste per person in South Asia and beyond: Bangladesh wastes 82 kg per person a year, more than the United States or China.",
+        source: "UNEP Food Waste Index Report 2024, via The Business Standard",
+      },
+      {
+        key: "composition",
+        title: "Most of our rubbish is food",
+        caption: "About 80% of the waste collected in Bangladesh’s cities and towns is food waste.",
+        source: "Waste Concern, 2021",
+      },
+    ] as { key: "household" | "composition"; title: string; caption: string; source: string }[],
+    newsTitle: "In the news",
+    newsHint: "Tap a story to read it",
+    newsClose: "Close",
+    news: [
+      {
+        poster: "news14m",
+        headline: "Bangladesh’s annual food waste hits 14.10 million tonnes",
+        text: "Bangladeshi households throw away about 14.1 million tonnes of food a year, 82 kg for every person: more than households in the United States or China.",
+        source: "Press Xpress · UNEP Food Waste Index 2024",
+      },
+      {
+        photo: "hungerReliefCrowd",
+        headline: "45.4 million people in Bangladesh can’t count on enough food",
+        highlight: "45.4 million",
+        text: "26.2% of the population was moderately or severely food insecure in 2023–2025, according to the UN’s State of Food Security and Nutrition in the World report.",
+        source: "FAO SOFI 2026",
+      },
+      {
+        poster: "newsWb",
+        headline: "Bangladesh wastes 34% of food annually: World Bank study",
+        text: "A World Bank study presented in Dhaka found that 34% of the food available in Bangladesh is lost or wasted between farm and plate, costing about 4% of GDP.",
+        source: "TBS Graduates · 30 Sep 2025",
+      },
+      {
+        photo: "hungerWaitingLine",
+        headline: "18.1 million face crisis-level hunger this autumn",
+        highlight: "18.1 million",
+        text: "The IPC analysis projects 18.1 million people in crisis-level hunger (IPC Phase 3 or worse) from September to December 2026, including 787,000 in an emergency.",
+        source: "IPC Bangladesh · July 2026",
+      },
+      {
+        photo: "wasteStreetGarbage",
+        headline: "80% of what our cities throw away is food",
+        highlight: "80%",
+        text: "Around four-fifths of the waste collected in Bangladesh’s cities and pourashavas is food waste.",
+        source: "Waste Concern · 2021",
+      },
+      {
+        poster: "news34",
+        headline: "Bangladesh wastes 34% of food annually: World Bank study",
+        text: "The same study found that lost and wasted food causes 13% of the country’s greenhouse emissions, and 27% of farmland grows food that nobody eats.",
+        source: "The Business Standard · 29 Sep 2025",
+      },
+      {
+        photo: "hungerChildMeal",
+        headline: "One in four young children is stunted",
+        highlight: "One in four",
+        text: "24% of children under five in Bangladesh are too short for their age, a sign of long-term undernutrition.",
+        source: "Bangladesh DHS 2022",
+      },
+      {
+        photo: "wasteLeftoverPlates",
+        headline: "Wasted food: 13% of Bangladesh’s greenhouse emissions",
+        highlight: "13%",
+        text: "Food that is lost or wasted in Bangladesh produces about 29 million tonnes of CO₂-equivalent a year. Food rotting in dumps gives off methane.",
+        source: "World Bank · Sep 2025",
+      },
+      {
+        photo: "wasteKarwanBazar",
+        headline: "Two in three people can’t afford a healthy diet",
+        highlight: "Two in three",
+        text: "66% of people in Bangladesh cannot afford a healthy diet, while more than a fifth of potatoes and tomatoes are lost on the way to the plate.",
+        source: "World Bank · 2025",
+      },
+    ] as NewsItem[],
+    viewFull: "View full size",
     storiesTitle: "Where Bangladesh’s food waste happens",
     stories: [
       {
@@ -140,11 +237,27 @@ const en = {
       { value: "1 in 4", label: "children under five is stunted (24%)", source: "Bangladesh DHS 2022" },
     ],
     storiesTitle: "Hunger in Bangladesh, in pictures",
+    storiesLede: "Behind every number is a person. These are the faces our volunteers carry food to.",
     stories: [
+      {
+        photo: "hungerImHungry",
+        title: "“I’m hungry”",
+        text: "Some children learn to ask for food before they learn to read. A hungry evening is a normal evening for far too many.",
+      },
+      {
+        photo: "hungerMotherChild",
+        title: "A mother’s worry",
+        text: "When there isn’t enough, mothers eat last. Children who go without in their first years carry it for life.",
+      },
       {
         photo: "hungerChildMeal",
         title: "A meal shapes a childhood",
         text: "What a child eats today decides how they grow. One in four children under five in Bangladesh is stunted.",
+      },
+      {
+        photo: "hungerReachingPots",
+        title: "Every pot held out",
+        text: "When cooked food arrives, hands reach from every side. There is never quite enough to go round.",
       },
       {
         photo: "hungerReliefCrowd",
@@ -182,6 +295,68 @@ const en = {
       },
     ] as Story[],
   },
+  action: {
+    eyebrow: "What FoodBridge is doing",
+    title: "From an NGO’s request to a child’s smile",
+    lede: "This is what happens on FoodBridge every day, in every town where people sign up. Nobody has to keep refreshing a website: the right people are told at the right moment.",
+    chapters: [
+      {
+        tag: "1 · The NGO asks",
+        photo: "hopeCommunityPot",
+        title: "“We need rice meals for 40 children tonight”",
+        text: "A verified NGO, shelter or community kitchen posts what it needs: the food, how many people, where and by when.",
+      },
+      {
+        tag: "2 · Donors nearby are told",
+        photo: "roleFeastTable",
+        title: "The request reaches donors’ phones and dashboards",
+        text: "Restaurants, caterers, halls and households near the NGO get an alert. They don’t have to keep checking the site: the request comes to them.",
+      },
+      {
+        tag: "3 · A donor answers",
+        photo: "wasteHoludFeast",
+        title: "“I’ll have some food left. I can give this.”",
+        text: "A donor approves the request in one tap, or leaves a comment, and posts the food (or lets our chat helper fill in the form for them).",
+      },
+      {
+        tag: "4 · The NGO confirms, a volunteer carries",
+        photo: "heroVolunteer",
+        title: "Confirmed, collected, delivered",
+        text: "The NGO confirms the food, the nearest available volunteer is offered the pickup, and everyone can follow it to the door.",
+      },
+      {
+        tag: "5 · A smile at the end",
+        photo: "hopeGirlServed",
+        title: "Hot food on a plate, not in a bin",
+        text: "The NGO serves the meals to people nearby who need them and records how many ate. That number becomes the donor’s impact.",
+      },
+    ] as Chapter[],
+    demoTitle: "What a donor sees",
+    demoNeed: "Hope Kitchen needs rice meals for 40 people",
+    demoMeta: "Mirpur 10 · 1.2 km away · needed by 8:00 pm",
+    demoComment: "আমার এখন কিছু খাবার বেঁচে যাবে, আমি এই খাবারটা দিতে পারব।",
+    demoCommentBy: "Nabil’s Kitchen, donor",
+    demoApprove: "Approve & post food",
+    demoReply: "Comment",
+    demoConfirmed: "Hope Kitchen confirmed · volunteer Rahim is on the way",
+    easyTitle: "Made so donors don’t have to keep coming back",
+    easy: [
+      "Alerts when an NGO near you needs food, in the app and on SMS, WhatsApp or Messenger",
+      "Reply or approve in one tap, straight from your dashboard",
+      "Tell our chat helper what you have; it fills in the donation form for you",
+      "Free pickup from your door by a verified volunteer",
+    ],
+    chatTitle: "Donate in a chat",
+    chatText: "Not sure where to start? Our AI helper greets you, asks a few simple questions one at a time, checks the food-safety rules and fills in the donation form for you. You just check it and post.",
+    chatCta: "Chat with the FoodBridge Helper",
+    chatStarter: "I have leftover food to donate",
+    chatSample: [
+      { from: "you", text: "We have about 20 plates of biryani left from a wedding." },
+      { from: "bot", text: "That’s wonderful, thank you! 🙏 When was it cooked?" },
+      { from: "you", text: "About an hour ago." },
+      { from: "bot", text: "Got it. Until when will it stay good to eat?" },
+    ] as { from: "you" | "bot"; text: string }[],
+  },
   how: {
     eyebrow: "How FoodBridge works",
     title: "How food donation works: from surplus to served in five steps",
@@ -198,7 +373,7 @@ const en = {
   },
   roles: {
     eyebrow: "Get involved",
-    title: "Donate food, receive food or volunteer in Dhaka",
+    title: "Donate food, receive food or volunteer, anywhere in Bangladesh",
     donor: {
       photo: "roleFeastTable" as PhotoKey,
       tag: "For food donors",
@@ -216,7 +391,7 @@ const en = {
       cta: "Register your NGO",
     },
     volunteer: {
-      photo: "roleRickshaws" as PhotoKey,
+      photo: "heroVolunteer" as PhotoKey,
       tag: "For volunteers",
       title: "You can carry it",
       who: "Students, riders and neighbours with an hour to spare.",
@@ -231,11 +406,54 @@ const en = {
     lede: "Every number here is a plate that was filled, counted from completed deliveries on FoodBridge, not estimated.",
     stats: ["Meals served", "Donations completed", "Registered donors", "Verified NGOs & volunteers"],
     methane: "Food left in a landfill rots into methane. Food on a plate doesn’t.",
-    sdgTitle: "Working towards the UN Sustainable Development Goals",
-    sdgs: ["SDG 2 · Zero hunger", "SDG 12 · Responsible consumption", "SDG 13 · Climate action", "SDG 17 · Partnerships"],
+  },
+  sdg: {
+    eyebrow: "UN Sustainable Development Goals",
+    title: "The global goals FoodBridge works towards",
+    lede: "Every plate rescued on FoodBridge counts towards the goals Bangladesh has signed up to for 2030.",
+    primary: "Our main goals",
+    also: "We also support",
+    goals: [
+      {
+        goal: "sdg2",
+        title: "SDG 2 · Zero hunger",
+        how: "Surplus food reaches people who would otherwise go hungry, through verified NGOs, shelters and community kitchens.",
+      },
+      {
+        goal: "sdg12",
+        title: "SDG 12 · Target 12.3: halve food waste",
+        how: "Food that would be thrown away is eaten instead. Every completed donation is counted, so the waste we prevent is measured, not guessed.",
+      },
+      {
+        goal: "sdg13",
+        title: "SDG 13 · Climate action",
+        how: "Food rotting in dumps gives off methane. Food waste is 13% of Bangladesh’s greenhouse emissions; rescuing it cuts that.",
+      },
+      {
+        goal: "sdg17",
+        title: "SDG 17 · Partnerships for the goals",
+        how: "Donors, NGOs, volunteers and local businesses work as one network instead of alone.",
+      },
+      {
+        goal: "sdg1",
+        title: "SDG 1 · No poverty",
+        how: "A free meal leaves families a little more for rent, school and medicine.",
+      },
+    ] as Goal[],
+  },
+  money: {
+    eyebrow: "Donate money",
+    title: "No food to give? You can still help",
+    text: "Your money pays for packaging, transport and hot meals where food donations don’t reach. Every taka goes to feeding people.",
+    amounts: [500, 1000, 2500, 5000],
+    other: "Other amount",
+    cta: "Donate money",
+    soon: "Online payments are coming soon. Thank you for wanting to help! Meanwhile you can donate food or volunteer.",
+    note: "bKash, Nagad and card payments are coming soon.",
+    meals: "about {n} meals",
   },
   cta: {
-    title: "Donate leftover food in Dhaka tonight",
+    title: "Donate leftover food tonight, wherever you are",
     text: "Post it now. It could be on someone’s plate before it goes cold.",
     donate: "Donate food",
     ngo: "Register your NGO",
@@ -247,6 +465,7 @@ const en = {
     involved: "Get involved",
     how: "How it works",
     donate: "Donate food",
+    money: "Donate money",
     login: "Log in",
     forNgos: "For NGOs",
     volunteer: "Volunteer",
@@ -263,7 +482,7 @@ const bn: SiteCopy = {
   meta: {
     title: "বাংলাদেশে খাবার দান: উদ্বৃত্ত খাবার দিন, ক্ষুধা কমান | ফুডব্রিজ",
     description:
-      "বাংলাদেশের বাসাবাড়িতে বছরে ১ কোটি ৪১ লাখ টন খাবার নষ্ট হয়, অথচ সাড়ে ৪ কোটির বেশি মানুষ খাদ্য নিরাপত্তাহীনতায়। ফুডব্রিজ ঢাকার রেস্তোরাঁ, বিয়ের আয়োজন ও বাসাবাড়ির উদ্বৃত্ত খাবারকে যাচাই করা এনজিও ও স্বেচ্ছাসেবকদের সঙ্গে যুক্ত করে।",
+      "বাংলাদেশের বাসাবাড়িতে বছরে ১ কোটি ৪১ লাখ টন খাবার নষ্ট হয়, অথচ সাড়ে ৪ কোটির বেশি মানুষ খাদ্য নিরাপত্তাহীনতায়। ফুডব্রিজ সারা বাংলাদেশের বাসাবাড়ি, রেস্তোরাঁ, বিয়ের আয়োজন ও দোকানের উদ্বৃত্ত খাবারকে যাচাই করা এনজিও ও স্বেচ্ছাসেবকদের সঙ্গে যুক্ত করে।",
   },
   nav: {
     problem: "খাদ্য অপচয়",
@@ -279,16 +498,18 @@ const bn: SiteCopy = {
   },
   photo: { credit: "ছবি", via: "উইকিমিডিয়া কমন্স" },
   hero: {
-    kicker: "বাংলাদেশে উদ্বৃত্ত খাবার দান",
-    title1: "আজ রাতেও ঢাকায় ভালো খাবার ফেলে দেওয়া হবে।",
-    title2: "আর কয়েকটা গলি পরেই কেউ না খেয়ে ঘুমাবে।",
-    lede: "ফুডব্রিজ এই দুইয়ের মাঝের সেতু। রেস্তোরাঁ, বিয়ের হল, দোকান আর বাসাবাড়ি জানায় তাদের কী খাবার বেঁচে গেছে। কাছের একটি যাচাই করা এনজিও তা গ্রহণ করে, আর একজন স্বেচ্ছাসেবক টাটকা থাকতেই শহর পেরিয়ে পৌঁছে দেন।",
+    kicker: "সারা বাংলাদেশে উদ্বৃত্ত খাবার দান",
+    title1: "তাদের মুখে",
+    title2: "হাসি ফোটান",
+    lede: "প্রতি রাতে ভালো খাবার ফেলে দেওয়া হয়, অথচ খুব কাছেই কেউ না খেয়ে ঘুমায়। ফুডব্রিজ এই দুইয়ের মাঝের সেতু, বাংলাদেশের প্রতিটি শহর ও জনপদে: আপনি বেঁচে যাওয়া খাবারের কথা জানান, কাছের একটি যাচাই করা এনজিও তা নিশ্চিত করে, আর একজন স্বেচ্ছাসেবক টাটকা থাকতেই তা প্রয়োজনে থাকা মানুষের কাছে পৌঁছে দেন।",
     ctaDonate: "উদ্বৃত্ত খাবার দান করুন",
     ctaHow: "কীভাবে কাজ করে দেখুন",
+    ctaChat: "চ্যাট করে দান করুন",
+    ctaMoney: "অর্থ দান করুন",
     trust: ["দাতাদের জন্য বিনামূল্যে", "যাচাই করা এনজিও", "প্রতিটি পোস্টে খাদ্য-নিরাপত্তা যাচাই"],
-    bgAlt: "রাতে ঢাকার রাস্তায় একজন রিকশাচালক।",
-    photoAlt: "এক মুঠো চালের দিকে বাড়িয়ে দেওয়া অনেকগুলো হাত।",
-    photoCaption: "খাবার আছে। শুধু অপেক্ষায় থাকা হাতগুলো পর্যন্ত পৌঁছায় না।",
+    bgAlt: "সারিতে অপেক্ষারত শিশুদের হাতে খাবারের প্লেট তুলে দিচ্ছেন একজন স্বেচ্ছাসেবক।",
+    photoAlt: "এক প্লেট বিরিয়ানি খেতে খেতে হাসছে একটি ছেলে।",
+    photoCaption: "এক প্লেট খাবার, একটি হাসি। আপনার বেঁচে যাওয়া খাবার এটুকুই করতে পারে।",
     strip: [
       { value: "১.৪১ কোটি টন", label: "খাবার প্রতি বছর বাসাবাড়িতে নষ্ট হয়", source: "ইউএনইপি ২০২৪" },
       { value: "৪.৫৪ কোটি", label: "মানুষ নিয়মিত পর্যাপ্ত খাবার পান না", source: "এফএও ২০২৬" },
@@ -336,6 +557,88 @@ const bn: SiteCopy = {
     chainSource: "বিশ্বব্যাংকের গবেষণা, ঢাকায় উপস্থাপিত ২৯ সেপ্টেম্বর ২০২৫",
     marketAlt: "পুরান ঢাকার চকবাজারের ইফতার বাজারে ভিড় আর থরে থরে সাজানো খাবার।",
     marketCaption: "চকবাজার, পুরান ঢাকা: রমজানের প্রতি সন্ধ্যায় খাবারের প্রাচুর্য। রাতের মধ্যে যা বিক্রি হয় না, তা প্রায়ই আর খাওয়া হয় না।",
+    chartsTitle: "চার্টে বাংলাদেশ",
+    chartsLede: "আমরা যে খাবার ফেলে দিই, তা নিয়ে গবেষণা আর সংবাদ কী বলছে।",
+    charts: [
+      {
+        key: "household",
+        title: "খাদ্য অপচয়ে এগিয়ে বাসাবাড়ি",
+        caption: "দক্ষিণ এশিয়া ও অন্যান্য দেশে মাথাপিছু বাসাবাড়ির খাদ্য অপচয়: বাংলাদেশে বছরে মাথাপিছু ৮২ কেজি, যা যুক্তরাষ্ট্র বা চীনের চেয়েও বেশি।",
+        source: "ইউএনইপি ফুড ওয়েস্ট ইনডেক্স রিপোর্ট ২০২৪, দ্য বিজনেস স্ট্যান্ডার্ডের সৌজন্যে",
+      },
+      {
+        key: "composition",
+        title: "আমাদের বর্জ্যের বেশির ভাগই খাবার",
+        caption: "বাংলাদেশের শহর ও পৌরসভায় সংগৃহীত বর্জ্যের প্রায় ৮০%-ই খাদ্য বর্জ্য।",
+        source: "ওয়েস্ট কনসার্ন, ২০২১",
+      },
+    ],
+    newsTitle: "সংবাদে",
+    newsHint: "পড়তে যেকোনো খবরে চাপুন",
+    newsClose: "বন্ধ করুন",
+    news: [
+      {
+        poster: "news14m",
+        headline: "বাংলাদেশে বছরে খাদ্য অপচয় ১ কোটি ৪১ লাখ টন",
+        text: "বাংলাদেশের বাসাবাড়িতে বছরে প্রায় ১ কোটি ৪১ লাখ টন খাবার ফেলে দেওয়া হয়, মাথাপিছু ৮২ কেজি: যা যুক্তরাষ্ট্র বা চীনের বাসাবাড়ির চেয়েও বেশি।",
+        source: "প্রেস এক্সপ্রেস · ইউএনইপি ফুড ওয়েস্ট ইনডেক্স ২০২৪",
+      },
+      {
+        photo: "hungerReliefCrowd",
+        headline: "বাংলাদেশের ৪ কোটি ৫৪ লাখ মানুষ নিয়মিত পর্যাপ্ত খাবার পান না",
+        highlight: "৪ কোটি ৫৪ লাখ",
+        text: "জাতিসংঘের খাদ্য নিরাপত্তা ও পুষ্টি প্রতিবেদন অনুযায়ী, ২০২৩–২০২৫ সালে দেশের ২৬.২% মানুষ মাঝারি বা তীব্র খাদ্য নিরাপত্তাহীনতায় ছিলেন।",
+        source: "এফএও সফি ২০২৬",
+      },
+      {
+        poster: "newsWb",
+        headline: "বাংলাদেশে বছরে ৩৪% খাবার নষ্ট হয়: বিশ্বব্যাংকের গবেষণা",
+        text: "ঢাকায় উপস্থাপিত বিশ্বব্যাংকের এক গবেষণায় দেখা গেছে, মাঠ থেকে প্লেট পর্যন্ত দেশের সহজলভ্য খাবারের ৩৪% নষ্ট বা অপচয় হয়, যার ক্ষতি জিডিপির প্রায় ৪%।",
+        source: "টিবিএস গ্র্যাজুয়েটস · ৩০ সেপ্টেম্বর ২০২৫",
+      },
+      {
+        photo: "hungerWaitingLine",
+        headline: "এই শরতে ১ কোটি ৮১ লাখ মানুষ সংকটপূর্ণ ক্ষুধার মুখে",
+        highlight: "১ কোটি ৮১ লাখ",
+        text: "আইপিসির বিশ্লেষণ অনুযায়ী, সেপ্টেম্বর–ডিসেম্বর ২০২৬-এ ১ কোটি ৮১ লাখ মানুষ সংকটপূর্ণ ক্ষুধায় (আইপিসি ধাপ ৩ বা তার বেশি) পড়তে পারেন, যাদের ৭ লাখ ৮৭ হাজার জরুরি অবস্থায়।",
+        source: "আইপিসি বাংলাদেশ · জুলাই ২০২৬",
+      },
+      {
+        photo: "wasteStreetGarbage",
+        headline: "শহরের ফেলে দেওয়া বর্জ্যের ৮০%-ই খাবার",
+        highlight: "৮০%",
+        text: "বাংলাদেশের শহর ও পৌরসভায় সংগৃহীত বর্জ্যের প্রায় পাঁচ ভাগের চার ভাগই খাদ্য বর্জ্য।",
+        source: "ওয়েস্ট কনসার্ন · ২০২১",
+      },
+      {
+        poster: "news34",
+        headline: "বাংলাদেশে বছরে ৩৪% খাবার নষ্ট হয়: বিশ্বব্যাংকের গবেষণা",
+        text: "একই গবেষণায় দেখা গেছে, নষ্ট ও অপচয় হওয়া খাবার থেকে আসে দেশের গ্রিনহাউস গ্যাস নিঃসরণের ১৩%, আর ২৭% কৃষিজমিতে এমন খাবার ফলে যা কেউ খায় না।",
+        source: "দ্য বিজনেস স্ট্যান্ডার্ড · ২৯ সেপ্টেম্বর ২০২৫",
+      },
+      {
+        photo: "hungerChildMeal",
+        headline: "প্রতি চারজন ছোট শিশুর একজন খর্বকায়",
+        highlight: "প্রতি চারজন",
+        text: "বাংলাদেশে পাঁচ বছরের কম বয়সী শিশুদের ২৪% বয়সের তুলনায় খাটো, যা দীর্ঘমেয়াদি অপুষ্টির লক্ষণ।",
+        source: "বাংলাদেশ জনমিতি ও স্বাস্থ্য জরিপ ২০২২",
+      },
+      {
+        photo: "wasteLeftoverPlates",
+        headline: "অপচয় হওয়া খাবার: দেশের গ্রিনহাউস গ্যাস নিঃসরণের ১৩%",
+        highlight: "১৩%",
+        text: "বাংলাদেশে নষ্ট ও অপচয় হওয়া খাবার থেকে বছরে প্রায় ২ কোটি ৯০ লাখ টন কার্বন-ডাই-অক্সাইডের সমতুল্য গ্যাস নিঃসরণ হয়। ভাগাড়ে পচা খাবার মিথেন ছড়ায়।",
+        source: "বিশ্বব্যাংক · সেপ্টেম্বর ২০২৫",
+      },
+      {
+        photo: "wasteKarwanBazar",
+        headline: "প্রতি তিনজনে দুজনের স্বাস্থ্যকর খাবারের সামর্থ্য নেই",
+        highlight: "প্রতি তিনজনে দুজনের",
+        text: "বাংলাদেশের ৬৬% মানুষের স্বাস্থ্যকর খাবার কেনার সামর্থ্য নেই, অথচ আলু ও টমেটোর পাঁচ ভাগের এক ভাগেরও বেশি প্লেটে পৌঁছানোর আগেই নষ্ট হয়।",
+        source: "বিশ্বব্যাংক · ২০২৫",
+      },
+    ],
+    viewFull: "পূর্ণ আকারে দেখুন",
     storiesTitle: "বাংলাদেশে খাদ্য অপচয় কোথায় হয়",
     stories: [
       {
@@ -378,11 +681,27 @@ const bn: SiteCopy = {
       { value: "প্রতি ৪ জনে ১ জন", label: "পাঁচ বছরের কম বয়সী শিশু খর্বকায় (২৪%)", source: "বাংলাদেশ জনমিতি ও স্বাস্থ্য জরিপ ২০২২" },
     ],
     storiesTitle: "ছবিতে বাংলাদেশের ক্ষুধা",
+    storiesLede: "প্রতিটি সংখ্যার পেছনে একজন মানুষ। আমাদের স্বেচ্ছাসেবকেরা এই মুখগুলোর কাছেই খাবার পৌঁছে দেন।",
     stories: [
+      {
+        photo: "hungerImHungry",
+        title: "“আমার খিদে পেয়েছে”",
+        text: "কিছু শিশু পড়তে শেখার আগেই খাবার চাইতে শেখে। অনেকের কাছেই ক্ষুধার্ত সন্ধ্যা খুব সাধারণ একটি সন্ধ্যা।",
+      },
+      {
+        photo: "hungerMotherChild",
+        title: "মায়ের দুশ্চিন্তা",
+        text: "খাবার কম পড়লে মায়েরা খান সবার শেষে। জীবনের প্রথম বছরগুলোতে যে শিশু কম খায়, তার ছাপ থেকে যায় সারা জীবন।",
+      },
       {
         photo: "hungerChildMeal",
         title: "একবেলার খাবারেই গড়ে ওঠে শৈশব",
         text: "আজ একটি শিশু কী খায়, তা-ই ঠিক করে সে কীভাবে বেড়ে উঠবে। বাংলাদেশে পাঁচ বছরের কম বয়সী প্রতি চারজন শিশুর একজন খর্বকায়।",
+      },
+      {
+        photo: "hungerReachingPots",
+        title: "বাড়িয়ে দেওয়া প্রতিটি হাঁড়ি",
+        text: "রান্না করা খাবার এলে চারদিক থেকে হাত বাড়ে। সবার জন্য কখনোই পুরোপুরি যথেষ্ট হয় না।",
       },
       {
         photo: "hungerReliefCrowd",
@@ -420,6 +739,68 @@ const bn: SiteCopy = {
       },
     ],
   },
+  action: {
+    eyebrow: "ফুডব্রিজ যা করছে",
+    title: "এনজিওর অনুরোধ থেকে একটি শিশুর হাসি পর্যন্ত",
+    lede: "যেখানেই মানুষ যুক্ত হন, সেখানে প্রতিদিন ফুডব্রিজে এমনটাই ঘটে। কাউকে বারবার ওয়েবসাইটে ঢুকে দেখতে হয় না: ঠিক সময়ে ঠিক মানুষটির কাছে খবর পৌঁছে যায়।",
+    chapters: [
+      {
+        tag: "১ · এনজিও জানায়",
+        photo: "hopeCommunityPot",
+        title: "“আজ রাতে ৪০ জন শিশুর জন্য ভাতের খাবার দরকার”",
+        text: "একটি যাচাই করা এনজিও, আশ্রয়কেন্দ্র বা কমিউনিটি কিচেন জানায় তাদের কী দরকার: কোন খাবার, কতজনের জন্য, কোথায় আর কখনের মধ্যে।",
+      },
+      {
+        tag: "২ · কাছের দাতারা খবর পান",
+        photo: "roleFeastTable",
+        title: "অনুরোধটি পৌঁছে যায় দাতাদের ফোন ও ড্যাশবোর্ডে",
+        text: "এনজিওর কাছাকাছি রেস্তোরাঁ, ক্যাটারার, হল ও বাসাবাড়ি একটি বার্তা পান। তাঁদের বারবার সাইটে ঢুকতে হয় না: অনুরোধ নিজেই তাঁদের কাছে আসে।",
+      },
+      {
+        tag: "৩ · একজন দাতা সাড়া দেন",
+        photo: "wasteHoludFeast",
+        title: "“আমার এখন কিছু খাবার বেঁচে যাবে, আমি এই খাবারটা দিতে পারব।”",
+        text: "দাতা এক ট্যাপে অনুরোধটি অনুমোদন করেন বা মন্তব্য লেখেন, তারপর খাবারের তথ্য দেন (অথবা আমাদের চ্যাট সহকারী ফর্মটি পূরণ করে দেয়)।",
+      },
+      {
+        tag: "৪ · এনজিও নিশ্চিত করে, স্বেচ্ছাসেবক পৌঁছে দেন",
+        photo: "heroVolunteer",
+        title: "নিশ্চিত, সংগৃহীত, পৌঁছে দেওয়া",
+        text: "এনজিও খাবারটি নিশ্চিত করে, সবচেয়ে কাছের ফাঁকা স্বেচ্ছাসেবককে সংগ্রহের কাজটি দেওয়া হয়, আর সবাই দরজা পর্যন্ত তা অনুসরণ করতে পারেন।",
+      },
+      {
+        tag: "৫ · শেষে একটি হাসি",
+        photo: "hopeGirlServed",
+        title: "গরম খাবার প্লেটে, ডাস্টবিনে নয়",
+        text: "এনজিও আশপাশের প্রয়োজনে থাকা মানুষদের খাবার পরিবেশন করে এবং কতজন খেলেন তা লিখে রাখে। সেই সংখ্যাই হয়ে ওঠে দাতার অবদান।",
+      },
+    ],
+    demoTitle: "দাতা যা দেখেন",
+    demoNeed: "হোপ কিচেনের ৪০ জনের জন্য ভাতের খাবার দরকার",
+    demoMeta: "মিরপুর ১০ · ১.২ কিমি দূরে · রাত ৮টার মধ্যে",
+    demoComment: "আমার এখন কিছু খাবার বেঁচে যাবে, আমি এই খাবারটা দিতে পারব।",
+    demoCommentBy: "নাবিল’স কিচেন, দাতা",
+    demoApprove: "অনুমোদন ও খাবার পোস্ট",
+    demoReply: "মন্তব্য",
+    demoConfirmed: "হোপ কিচেন নিশ্চিত করেছে · স্বেচ্ছাসেবক রহিম আসছেন",
+    easyTitle: "দাতাদের যেন বারবার ফিরে আসতে না হয়",
+    easy: [
+      "কাছের কোনো এনজিওর খাবার দরকার হলে অ্যাপে আর এসএমএস, হোয়াটসঅ্যাপ বা মেসেঞ্জারে বার্তা",
+      "ড্যাশবোর্ড থেকেই এক ট্যাপে সাড়া দিন বা অনুমোদন করুন",
+      "চ্যাট সহকারীকে বলুন কী খাবার আছে; সে-ই দানের ফর্ম পূরণ করে দেবে",
+      "যাচাই করা স্বেচ্ছাসেবক বিনামূল্যে দরজা থেকে খাবার নিয়ে যান",
+    ],
+    chatTitle: "চ্যাটেই খাবার দান",
+    chatText: "কোথা থেকে শুরু করবেন বুঝতে পারছেন না? আমাদের এআই সহকারী আপনাকে স্বাগত জানাবে, একে একে কয়েকটি সহজ প্রশ্ন করবে, খাদ্য-নিরাপত্তার নিয়ম মিলিয়ে দেখবে আর দানের ফর্ম পূরণ করে দেবে। আপনি শুধু দেখে নিয়ে পোস্ট করবেন।",
+    chatCta: "ফুডব্রিজ সহকারীর সঙ্গে চ্যাট করুন",
+    chatStarter: "আমার কিছু খাবার বেঁচে গেছে, দান করতে চাই",
+    chatSample: [
+      { from: "you", text: "একটা বিয়ের অনুষ্ঠান থেকে প্রায় ২০ প্লেট বিরিয়ানি বেঁচে গেছে।" },
+      { from: "bot", text: "অসাধারণ, অনেক ধন্যবাদ! 🙏 খাবারটা কখন রান্না হয়েছিল?" },
+      { from: "you", text: "প্রায় এক ঘণ্টা আগে।" },
+      { from: "bot", text: "বুঝেছি। খাবারটা কতক্ষণ পর্যন্ত খাওয়ার উপযোগী থাকবে?" },
+    ],
+  },
   how: {
     eyebrow: "ফুডব্রিজ যেভাবে কাজ করে",
     title: "খাবার দান যেভাবে কাজ করে: পাঁচ ধাপে উদ্বৃত্ত থেকে পরিবেশন",
@@ -436,7 +817,7 @@ const bn: SiteCopy = {
   },
   roles: {
     eyebrow: "যুক্ত হোন",
-    title: "ঢাকায় খাবার দান করুন, খাবার গ্রহণ করুন বা স্বেচ্ছাসেবক হোন",
+    title: "বাংলাদেশের যেকোনো জায়গা থেকে খাবার দান করুন, খাবার গ্রহণ করুন বা স্বেচ্ছাসেবক হোন",
     donor: {
       photo: "roleFeastTable",
       tag: "খাদ্য দাতাদের জন্য",
@@ -454,7 +835,7 @@ const bn: SiteCopy = {
       cta: "এনজিও নিবন্ধন করুন",
     },
     volunteer: {
-      photo: "roleRickshaws",
+      photo: "heroVolunteer",
       tag: "স্বেচ্ছাসেবকদের জন্য",
       title: "আপনি পৌঁছে দিতে পারেন",
       who: "হাতে এক ঘণ্টা সময় থাকা শিক্ষার্থী, রাইডার ও প্রতিবেশী।",
@@ -469,11 +850,54 @@ const bn: SiteCopy = {
     lede: "এখানের প্রতিটি সংখ্যা একটি ভরা প্লেট। অনুমান নয়, ফুডব্রিজে সম্পন্ন হওয়া ডেলিভারি থেকে গোনা।",
     stats: ["বেলার খাবার পরিবেশিত", "সম্পন্ন দান", "নিবন্ধিত দাতা", "যাচাই করা এনজিও ও স্বেচ্ছাসেবক"],
     methane: "ভাগাড়ে পড়ে থাকা খাবার পচে মিথেন ছড়ায়। প্লেটের খাবার তা করে না।",
-    sdgTitle: "জাতিসংঘের টেকসই উন্নয়ন লক্ষ্য অর্জনের পথে",
-    sdgs: ["এসডিজি ২ · ক্ষুধামুক্তি", "এসডিজি ১২ · পরিমিত ভোগ ও উৎপাদন", "এসডিজি ১৩ · জলবায়ু কার্যক্রম", "এসডিজি ১৭ · অংশীদারিত্ব"],
+  },
+  sdg: {
+    eyebrow: "জাতিসংঘের টেকসই উন্নয়ন লক্ষ্য",
+    title: "যে বৈশ্বিক লক্ষ্যগুলোর পথে ফুডব্রিজ কাজ করছে",
+    lede: "ফুডব্রিজে উদ্ধার হওয়া প্রতিটি প্লেট ২০৩০ সালের জন্য বাংলাদেশের অঙ্গীকার করা লক্ষ্যগুলোর দিকে এক ধাপ।",
+    primary: "আমাদের মূল লক্ষ্য",
+    also: "আমরা যেগুলোতেও অবদান রাখি",
+    goals: [
+      {
+        goal: "sdg2",
+        title: "এসডিজি ২ · ক্ষুধামুক্তি",
+        how: "যাচাই করা এনজিও, আশ্রয়কেন্দ্র ও কমিউনিটি কিচেনের মাধ্যমে উদ্বৃত্ত খাবার পৌঁছায় তাদের কাছে, যারা নইলে না খেয়ে থাকতেন।",
+      },
+      {
+        goal: "sdg12",
+        title: "এসডিজি ১২ · লক্ষ্য ১২.৩: খাদ্য অপচয় অর্ধেকে নামানো",
+        how: "যে খাবার ফেলে দেওয়া হতো, তা খাওয়া হয়। প্রতিটি সম্পন্ন দান গোনা হয়, তাই আমরা কতটা অপচয় ঠেকালাম তা মাপা যায়, অনুমান করতে হয় না।",
+      },
+      {
+        goal: "sdg13",
+        title: "এসডিজি ১৩ · জলবায়ু কার্যক্রম",
+        how: "ভাগাড়ে পচতে থাকা খাবার মিথেন ছড়ায়। বাংলাদেশের গ্রিনহাউস গ্যাস নিঃসরণের ১৩% আসে খাদ্য অপচয় থেকে; খাবার উদ্ধার তা কমায়।",
+      },
+      {
+        goal: "sdg17",
+        title: "এসডিজি ১৭ · লক্ষ্য অর্জনে অংশীদারিত্ব",
+        how: "দাতা, এনজিও, স্বেচ্ছাসেবক আর স্থানীয় ব্যবসা আলাদা আলাদা নয়, একটি নেটওয়ার্ক হিসেবে কাজ করে।",
+      },
+      {
+        goal: "sdg1",
+        title: "এসডিজি ১ · দারিদ্র্য বিলোপ",
+        how: "এক বেলার বিনামূল্যের খাবার পরিবারের হাতে বাসাভাড়া, স্কুল আর ওষুধের জন্য একটু বেশি টাকা রেখে দেয়।",
+      },
+    ],
+  },
+  money: {
+    eyebrow: "অর্থ দান করুন",
+    title: "দেওয়ার মতো খাবার নেই? তবুও সাহায্য করতে পারেন",
+    text: "আপনার অর্থে প্যাকেজিং, পরিবহন আর গরম খাবারের খরচ মেটে, যেখানে খাবারের দান পৌঁছায় না। প্রতিটি টাকা যায় মানুষের মুখে খাবার তুলে দিতে।",
+    amounts: [500, 1000, 2500, 5000],
+    other: "অন্য পরিমাণ",
+    cta: "অর্থ দান করুন",
+    soon: "অনলাইন পেমেন্ট শিগগিরই চালু হচ্ছে। সাহায্য করতে চাওয়ার জন্য ধন্যবাদ! এর মধ্যে আপনি খাবার দান করতে বা স্বেচ্ছাসেবক হতে পারেন।",
+    note: "বিকাশ, নগদ ও কার্ডে পেমেন্ট শিগগিরই আসছে।",
+    meals: "প্রায় {n} বেলার খাবার",
   },
   cta: {
-    title: "আজ রাতেই ঢাকায় বেঁচে যাওয়া খাবার দান করুন",
+    title: "আপনি যেখানেই থাকুন, আজ রাতেই বেঁচে যাওয়া খাবার দান করুন",
     text: "এখনই পোস্ট করুন। ঠান্ডা হওয়ার আগেই তা কারও প্লেটে পৌঁছাতে পারে।",
     donate: "খাবার দান করুন",
     ngo: "এনজিও নিবন্ধন করুন",
@@ -485,6 +909,7 @@ const bn: SiteCopy = {
     involved: "যুক্ত হোন",
     how: "কীভাবে কাজ করে",
     donate: "খাবার দান করুন",
+    money: "অর্থ দান করুন",
     login: "লগ ইন",
     forNgos: "এনজিওর জন্য",
     volunteer: "স্বেচ্ছাসেবক হোন",

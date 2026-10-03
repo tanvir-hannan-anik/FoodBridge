@@ -14,6 +14,7 @@ const NAV: Record<Role, NavItem[]> = {
   donor: [
     { href: "/donor", label: "Overview", icon: "home" },
     { href: "/donor/donations", label: "My donations", icon: "list" },
+    { href: "/donor/needs", label: "NGO needs", icon: "list" },
     { href: "/donor/map", label: "Map", icon: "map" },
     { href: "/donor/notifications", label: "Alerts", icon: "bell" },
   ],

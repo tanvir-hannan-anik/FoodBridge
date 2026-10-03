@@ -20,6 +20,7 @@ export function Footer({ lang }: { lang: Lang }) {
             links={[
               { href: "/#how-it-works", label: t.how },
               { href: "/register", label: t.donate },
+              { href: "/#donate-money", label: t.money },
               { href: "/login", label: t.login },
             ]}
           />

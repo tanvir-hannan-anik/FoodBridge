@@ -32,7 +32,7 @@ const ROLE_CARDS = [
 ] as const;
 
 export default async function RegisterPage({ searchParams }: PageProps<"/register">) {
-  const { role } = await searchParams;
+  const { role, next } = await searchParams;
   const { t } = await getI18n();
 
   if (role === "donor") {
@@ -46,7 +46,7 @@ export default async function RegisterPage({ searchParams }: PageProps<"/registe
           <h1 className="mt-3 font-display text-3xl font-semibold text-brand-950">{t("Start donating food")}</h1>
           <p className="mt-1 text-sm text-ink-500">{t("Takes about a minute. You can donate right after signing up.")}</p>
           <div className="mt-6">
-            <DonorRegisterForm />
+            <DonorRegisterForm next={typeof next === "string" ? next : undefined} />
           </div>
         </Card>
         <LoginHint />

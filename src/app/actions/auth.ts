@@ -91,7 +91,9 @@ export async function registerDonor(_: FormState, formData: FormData): Promise<F
   if (!user) return { errors: { email: ["An account with this email already exists. Try logging in."] } };
 
   await createSession({ userId: user.id, role: "donor", name: d.name });
-  redirect("/donor?welcome=1");
+  // Straight on to the donation form the assistant filled in, when they came from there.
+  const next = formData.get("next")?.toString();
+  redirect(next?.startsWith("/donor/donate") ? safeRedirectFor("donor", next) : "/donor?welcome=1");
 }
 
 /** NGOs can sign up themselves; the account stays "pending" (browse only) until an admin verifies it. */

@@ -26,8 +26,10 @@ type Defaults = {
   contactPhone: string;
   pickupAddress: string;
   point: { lat: number; lng: number } | null;
-  /** Pre-filled by the AI assistant; the donor checks everything before posting. */
+  /** Pre-filled by the AI assistant (or from an NGO request); the donor checks everything before posting. */
   draft?: DonationDraft | null;
+  /** Posting for this NGO request: the food is offered to that NGO first. */
+  needId?: string | null;
 };
 
 export function DonationForm({ defaults }: { defaults: Defaults }) {
@@ -59,13 +61,14 @@ export function DonationForm({ defaults }: { defaults: Defaults }) {
   return (
     <form action={action} onSubmit={onSubmit} className="space-y-5" noValidate>
       {state?.message && <Alert tone="error">{state.message}</Alert>}
-      {draft && !state?.message && (
+      {draft && !defaults.needId && !state?.message && (
         <Alert tone="info" title="Filled in by the assistant">
           {t("Please check every field (especially quantity and times) before posting.")}
           {draft.missing.length > 0 && <> {t("Still needed: {list}.", { list: draft.missing.map((m) => t(m)).join(", ") })}</>}
         </Alert>
       )}
       <input type="hidden" name="tzOffset" value={times.tzOffset} />
+      {defaults.needId && <input type="hidden" name="needId" value={defaults.needId} />}
 
       <Section step={1} title="What food are you donating?">
         <Input

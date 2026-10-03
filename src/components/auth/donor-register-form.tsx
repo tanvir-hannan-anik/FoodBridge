@@ -9,7 +9,8 @@ import { DONOR_TYPE_LABEL, toOptions } from "@/lib/donations/meta";
 
 const DONOR_TYPES = toOptions(DONOR_TYPE_LABEL);
 
-export function DonorRegisterForm() {
+/** `next`: where to go after signing up (e.g. the donation form the assistant filled in). */
+export function DonorRegisterForm({ next }: { next?: string }) {
   const { state, action, onSubmit, pending } = useFormAction(registerDonor);
   const [donorType, setDonorType] = useState("");
   const { t } = useI18n();
@@ -17,6 +18,7 @@ export function DonorRegisterForm() {
 
   return (
     <form action={action} onSubmit={onSubmit} className="space-y-4" noValidate>
+      {next && <input type="hidden" name="next" value={next} />}
       {state?.message && <Alert tone="error">{state.message}</Alert>}
 
       <Select

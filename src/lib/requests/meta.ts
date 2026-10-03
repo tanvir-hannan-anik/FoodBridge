@@ -1,4 +1,4 @@
-import type { DonationStatus, NeedStatus } from "@/db/schema";
+import type { DonationStatus, FoodCategory, NeedStatus, Unit } from "@/db/schema";
 import type { Stage } from "@/lib/ngo/meta";
 
 /**
@@ -51,4 +51,60 @@ export function needClosedReason(need: { status: NeedStatus; neededBy: Date }, n
   if (need.status === "CLOSED") return "You closed this request.";
   if (need.neededBy <= now) return "The required time passed before food was found.";
   return null;
+}
+
+/** What a donor sees of an open NGO request (serialisable subset of OpenNeedForDonor). */
+export type NeedCardData = {
+  id: string;
+  ngoName: string;
+  foodType: string | null;
+  category: FoodCategory | null;
+  quantity: number;
+  unit: Unit;
+  people: number;
+  area: string;
+  neededBy: Date;
+  notes: string | null;
+  remaining: number;
+  km: number | null;
+  replies: number;
+  myMessage: string | null;
+  myDonationId: string | null;
+};
+
+/** Server → client: keep only what the card shows. */
+export function toNeedCard(n: {
+  id: string;
+  ngoName: string;
+  foodType: string | null;
+  category: FoodCategory | null;
+  quantity: number;
+  unit: Unit;
+  people: number;
+  area: string;
+  neededBy: Date;
+  notes: string | null;
+  progress: { remaining: number };
+  km: number | null;
+  replies: number;
+  myMessage: string | null;
+  myDonationId: string | null;
+}): NeedCardData {
+  return {
+    id: n.id,
+    ngoName: n.ngoName,
+    foodType: n.foodType,
+    category: n.category,
+    quantity: n.quantity,
+    unit: n.unit,
+    people: n.people,
+    area: n.area,
+    neededBy: n.neededBy,
+    notes: n.notes,
+    remaining: n.progress.remaining,
+    km: n.km,
+    replies: n.replies,
+    myMessage: n.myMessage,
+    myDonationId: n.myDonationId,
+  };
 }
