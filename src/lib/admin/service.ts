@@ -17,6 +17,7 @@ import {
   type Role,
   type UserStatus,
 } from "@/db/schema";
+import { releaseChatOrdersOf } from "@/lib/chat-orders/service";
 import { ACTIVE_STATUSES } from "@/lib/donations/meta";
 import { distanceKm, toPoint } from "@/lib/geo";
 import { mealsCounted, notify, transitionDonation, transitionInTx } from "@/lib/donations/service";
@@ -252,7 +253,9 @@ export async function setUserStatus(adminId: string, userId: string, action: Use
       for (const d of held) {
         await transitionDonation(d.id, "MATCHED", { actorId: adminId, releaseVolunteer: true, note: `${reason}; volunteer released` });
       }
+      await releaseChatOrdersOf(userId, "volunteer");
     } else if (user.role === "ngo") {
+      await releaseChatOrdersOf(userId, "ngo");
       const open = await db
         .select({ id: foodNeeds.id })
         .from(foodNeeds)

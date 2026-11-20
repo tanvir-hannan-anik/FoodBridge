@@ -337,6 +337,42 @@ CREATE TABLE IF NOT EXISTS need_responses (
   UNIQUE (need_id, donor_id)
 );
 CREATE INDEX IF NOT EXISTS need_responses_need_idx ON need_responses (need_id, updated_at);
+
+-- Segment 23: orders received over chat (n8n stores them in Supabase; synced here so NGOs can assign volunteers)
+CREATE TABLE IF NOT EXISTS chat_orders (
+  id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+  source text NOT NULL CHECK (source IN ('donation','request')),
+  external_id integer NOT NULL,
+  name text,
+  phone text,
+  location text,
+  food text,
+  quantity text,
+  good_for text,
+  place text,
+  time_text text,
+  source_status text,
+  received_at timestamptz NOT NULL,
+  status text NOT NULL DEFAULT 'NEW' CHECK (status IN ('NEW','ASSIGNED','PICKED_UP','DELIVERED','CLOSED')),
+  ngo_id uuid REFERENCES users(id) ON DELETE SET NULL,
+  volunteer_id uuid REFERENCES users(id) ON DELETE SET NULL,
+  assigned_at timestamptz,
+  picked_up_at timestamptz,
+  delivered_at timestamptz,
+  push_pending boolean NOT NULL DEFAULT false,
+  synced_at timestamptz NOT NULL DEFAULT now(),
+  updated_at timestamptz NOT NULL DEFAULT now()
+);
+CREATE UNIQUE INDEX IF NOT EXISTS chat_orders_source_idx ON chat_orders (source, external_id);
+CREATE INDEX IF NOT EXISTS chat_orders_status_idx ON chat_orders (status, received_at);
+CREATE INDEX IF NOT EXISTS chat_orders_ngo_idx ON chat_orders (ngo_id);
+CREATE INDEX IF NOT EXISTS chat_orders_volunteer_idx ON chat_orders (volunteer_id);
+CREATE TABLE IF NOT EXISTS docs_settings (
+  id integer PRIMARY KEY CHECK (id = 1),
+  content text NOT NULL,
+  revision integer NOT NULL DEFAULT 1,
+  updated_at timestamptz NOT NULL DEFAULT now()
+);
 `;
 
 /** Accounts that cannot self-register (admin) plus ready-made demo partners (DEMO_MODE only). */

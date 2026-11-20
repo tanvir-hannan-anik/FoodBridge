@@ -3,18 +3,24 @@
   "version": "0.1.0",
   "private": true,
   "scripts": {
+    "predev": "node scripts/docs-manifest.mjs",
+    "prebuild": "node scripts/docs-manifest.mjs",
+    "docs:sync": "node scripts/docs-manifest.mjs",
+    "docs:test": "npx tsx --conditions=react-server scripts/docs-smoke.ts",
     "dev": "next dev",
     "build": "next build",
     "start": "next start",
     "lint": "eslint",
     "i18n:check": "node scripts/i18n-check.mjs",
-    "i18n:test": "npx tsx scripts/i18n-smoke.ts"
+    "i18n:test": "npx tsx scripts/i18n-smoke.ts",
+    "mcp:test": "npx tsx --conditions=react-server scripts/mcp-smoke.ts"
   },
   "dependencies": {
     "@anthropic-ai/sdk": "^0.129.0",
     "@electric-sql/pglite": "^0.5.8",
     "@langchain/core": "^1.2.13",
     "@langchain/langgraph": "^1.4.18",
+    "@modelcontextprotocol/sdk": "^1.32.2",
     "bcryptjs": "^3.0.3",
     "drizzle-orm": "^0.45.3",
     "jose": "^6.2.12",

@@ -66,4 +66,14 @@ export const NOTIFICATIONS: Record<string, string> = {
   "{ngo} needs {food} for {n} people in {area}. Can you help?": "{area}-এ {ngo}-এর {n} জনের জন্য {food} দরকার। আপনি কি সাহায্য করতে পারবেন?",
   "{donor} replied to your request “{food}”: “{message}”": "{donor} আপনার অনুরোধ “{food}”-এ সাড়া দিয়েছেন: “{message}”",
   "{donor} posted food for your request: “{food}” (~{n} meals). Accept or reject it.": "{donor} আপনার অনুরোধের জন্য খাবার পোস্ট করেছেন: “{food}” (~{n} বেলার খাবার)। গ্রহণ বা প্রত্যাখ্যান করুন।",
+  // Chat orders (Segment 23)
+  "{ngo} assigned you a chat order: pick up “{food}” from {shop}.": "{ngo} আপনাকে একটি চ্যাট অর্ডার দিয়েছে: {shop} থেকে “{food}” সংগ্রহ করুন।",
+  "You’re no longer needed for the chat order “{food}”.": "চ্যাট অর্ডার “{food}”-এর জন্য আপনাকে আর দরকার নেই।",
+  "{ngo} cancelled the chat order “{food}”. You don’t need to pick it up.": "{ngo} চ্যাট অর্ডার “{food}” বাতিল করেছে। আপনাকে এটি সংগ্রহ করতে হবে না।",
+  "{volunteer} can’t pick up the chat order “{food}”. It’s back in Chat orders for you to assign again.": "{volunteer} চ্যাট অর্ডার “{food}” সংগ্রহ করতে পারবেন না। এটি আবার চ্যাট অর্ডারে ফিরে এসেছে, অন্য কাউকে দিন।",
+  "“{food}” from a chat order has been picked up and is on its way to you.": "চ্যাট অর্ডারের “{food}” সংগ্রহ করা হয়েছে এবং আপনার কাছে আসছে।",
+  "“{food}” from a chat order was delivered to you.": "চ্যাট অর্ডারের “{food}” আপনার কাছে পৌঁছে দেওয়া হয়েছে।",
+  "The NGO confirmed it received “{food}”. Thank you!": "এনজিও “{food}” পাওয়ার কথা নিশ্চিত করেছে। ধন্যবাদ!",
+  "The chat order “{food}” was cancelled. You don’t need to pick it up.": "চ্যাট অর্ডার “{food}” বাতিল হয়েছে। আপনাকে এটি সংগ্রহ করতে হবে না।",
+  "The volunteer for the chat order “{food}” is no longer available. It’s back in Chat orders for you to assign again.": "চ্যাট অর্ডার “{food}”-এর স্বেচ্ছাসেবককে আর পাওয়া যাচ্ছে না। এটি আবার চ্যাট অর্ডারে ফিরে এসেছে, অন্য কাউকে দিন।",
 };

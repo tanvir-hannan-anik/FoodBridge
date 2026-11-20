@@ -86,4 +86,10 @@ export const VOLUNTEER: Record<string, string> = {
   "Home base on the map": "মানচিত্রে আপনার বাসস্থান",
   "Pickups near here are offered to you first. You can also update it from your dashboard when you’re out.": "এর কাছাকাছি সংগ্রহের কাজ আগে আপনাকে দেওয়া হয়। বাইরে থাকলে ড্যাশবোর্ড থেকেও এটি হালনাগাদ করতে পারেন।",
   "Accept task": "কাজ গ্রহণ করুন",
+  // Chat orders (Segment 23)
+  "Food offered over WhatsApp or Messenger that an NGO asked you to collect.": "হোয়াটসঅ্যাপ বা মেসেঞ্জারে দেওয়া খাবার, যা একটি এনজিও আপনাকে সংগ্রহ করতে বলেছে।",
+  "Bring it to": "যেখানে পৌঁছে দেবেন",
+  "Directions in Google Maps": "গুগল ম্যাপে পথ দেখুন",
+  "I can’t do this": "আমি এটি পারব না",
+  "Delivered {time}": "পৌঁছে দেওয়া হয়েছে {time}",
 };

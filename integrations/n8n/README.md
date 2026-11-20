@@ -107,6 +107,17 @@ It reads these n8n variables. Set them in your environment, or replace the `$env
 
 The workflow has not been run against a live n8n or WhatsApp account. Treat it as a starting point and test it with the Meta test number first. Messenger works the same way: use the Messenger webhook, send `channel: "messenger"` with the sender's PSID, and reply through the Send API (`/me/messages`).
 
+## 5. Chat orders inbox (Supabase)
+
+Some workflows store chat messages in Supabase instead of calling `/api/integrations/inbound`. FoodBridge reads them when `SUPABASE_DB_URL` is set (use the IPv4 **transaction pooler** string, port 6543):
+
+| Supabase table | Columns read | Shown as |
+| --- | --- | --- |
+| `donations` | `shop_name, contact_number, shop_location, food_type, quantity, good_for, pickup_location, pickup_before, status, created_at` | **Waiting offers** on `/ngo/chat-orders`. A verified NGO assigns one to an available volunteer, who picks it up and brings it to that NGO. |
+| `requests` | `ngo_name, ngo_location, contact_number, food_needed, quantity, needed_by, delivery_location, status, created_at` | **Requests over chat** (records only). |
+
+FoodBridge copies new rows every 30 seconds (and on “Check for new messages”). An offer is waiting while its `status` is `available` (requests: `open`). FoodBridge writes `assigned`, `picked_up` and `delivered` back to `donations.status`, and `available` again when an assignment is cancelled, so the bot should offer only `available` rows. Assigning claims the row with `UPDATE … WHERE status = 'available'`, so an offer the bot already handed out can’t be assigned twice. Offers deleted or given another status in Supabase drop out of the list.
+
 ## Removing the integration
 
 1. Unset `INTEGRATION_SECRET` and the two `NOTIFY_*` URLs. The endpoint then answers 503 and chat updates are skipped.

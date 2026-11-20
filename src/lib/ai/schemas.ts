@@ -40,7 +40,7 @@ export const needDraftSchema = z.object({
 export type NeedDraft = z.infer<typeof needDraftSchema>;
 
 export type Suggestion = { title: string; detail: string; href: string | null; priority: "high" | "normal" };
-export type AssistantIntent = "question" | "donation_form" | "request_form" | "my_updates";
+export type AssistantIntent = "question" | "donation_form" | "request_form" | "my_updates" | "live_data";
 
 /** What the assistant API returns for one turn. */
 export type AssistantReply = {

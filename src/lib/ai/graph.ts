@@ -8,6 +8,7 @@ import { getUserContext, type UserContext } from "./context";
 import type { KnowledgeDoc } from "./knowledge";
 import { aiEnabled, askStructured, type ChatTurn } from "./provider";
 import { retrieve } from "./rag";
+import { answerWithMcp, liveDataTool } from "./mcp";
 import { donationDraftSchema, needDraftSchema, type AssistantIntent, type AssistantReply, type DonationDraft, type NeedDraft, type Suggestion } from "./schemas";
 
 /*
@@ -55,11 +56,13 @@ const conversation = (s: S): ChatTurn[] => [...s.history.slice(-8), { role: "use
 /* ---------------------------------------------------------------- nodes */
 
 async function classify(s: S): Promise<Partial<S>> {
+  if (liveDataTool(s.input)) return { intent: "live_data" };
   const { intent } = await askStructured(
-    z.object({ intent: z.enum(["question", "donation_form", "request_form", "my_updates"]) }),
+    z.object({ intent: z.enum(["question", "donation_form", "request_form", "my_updates", "live_data"]) }),
     {
       system: `${base(s.lang)}
 Classify the user's latest message:
+- live_data: asks about available food donations, a specific donation's status, or volunteer assignments
 - donation_form: they describe food they want to donate, or ask to fill/post a donation
 - request_form: an NGO describing food it needs, or asking to create a food request
 - my_updates: they ask what to do next, for a summary of their alerts, notifications, tasks or status
@@ -156,6 +159,7 @@ ${alerts || "(none)"}
 /* ---------------------------------------------------------------- graph */
 
 const graph = new StateGraph(State)
+  .addNode("mcp_lookup", async (s: S) => ({ result: await answerWithMcp(s.user, s.input, s.history, s.lang) }))
   .addNode("classify", classify)
   .addNode("retrieve", retrieveDocs)
   .addNode("answer", answer)
@@ -169,6 +173,7 @@ const graph = new StateGraph(State)
     donation_form: "draft_donation",
     request_form: "draft_request",
     my_updates: "gather",
+    live_data: "mcp_lookup",
   })
   .addEdge("retrieve", "answer")
   .addEdge("answer", END)
@@ -176,12 +181,14 @@ const graph = new StateGraph(State)
   .addEdge("draft_request", END)
   .addEdge("gather", "organise")
   .addEdge("organise", END)
+  .addEdge("mcp_lookup", END)
   .compile();
 
 /* ------------------------------------------------------- no-AI help mode */
 
 /** Without an API key the assistant still helps: keyword routing, article excerpts and the rule-based to-do list. */
 async function runWithoutAi(user: User, input: string, lang: "en" | "bn"): Promise<AssistantReply> {
+  if (liveDataTool(input)) return { ...await answerWithMcp(user, input, [], lang), intent: "live_data", aiUsed: false };
   const text = input.toLowerCase();
   if (/(what should i do|next|summar|alert|notification|update|todo|to-do|task)/.test(text)) {
     const ctx = await getUserContext(user);
@@ -206,7 +213,7 @@ async function runWithoutAi(user: User, input: string, lang: "en" | "bn"): Promi
 
 /** Runs one assistant turn for a signed-in user. */
 export async function runAssistant(user: User, input: string, history: ChatTurn[], lang: "en" | "bn" = "en"): Promise<AssistantReply> {
-  if (!aiEnabled()) return runWithoutAi(user, input, lang);
+  if (!aiEnabled() && !liveDataTool(input)) return runWithoutAi(user, input, lang);
   const final = await graph.invoke({ user, input, history, docs: [], context: null, result: null, lang }, { recursionLimit: 12 });
-  return { ...(final.result ?? { reply: "Sorry, I couldn’t work that out. Please try again." }), intent: final.intent, aiUsed: true };
+  return { ...(final.result ?? { reply: "Sorry, I couldn’t work that out. Please try again." }), intent: final.intent, aiUsed: aiEnabled() };
 }

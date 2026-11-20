@@ -11,7 +11,7 @@ type Action = (state: FormState, formData: FormData) => Promise<FormState>;
 
 export type VolunteerChoice = { id: string; name: string; area: string | null; available: boolean; activeTasks: number; km: number | null };
 
-function choiceLabel(v: VolunteerChoice, { t }: I18n) {
+export function choiceLabel(v: VolunteerChoice, { t }: I18n) {
   const away = formatDistance(v.km);
   const facts = [
     t(v.available ? "available" : "unavailable"),

@@ -21,6 +21,7 @@ const NAV: Record<Role, NavItem[]> = {
   ngo: [
     { href: "/ngo", label: "Overview", icon: "home" },
     { href: "/ngo/requests", label: "Food requests", icon: "list" },
+    { href: "/ngo/chat-orders", label: "Chat orders", icon: "list" },
     { href: "/ngo/map", label: "Map", icon: "map" },
     { href: "/ngo/reports", label: "Report", icon: "list" },
     { href: "/ngo/notifications", label: "Alerts", icon: "bell" },
@@ -38,6 +39,7 @@ const NAV: Record<Role, NavItem[]> = {
     { href: "/admin/requests", label: "Requests", icon: "list" },
     { href: "/admin/activity", label: "Activity", icon: "list" },
     { href: "/admin/reports", label: "Reports", icon: "list" },
+    { href: "/admin/docs", label: "Documentation", icon: "list" },
     { href: "/admin/map", label: "Map", icon: "map" },
     { href: "/admin/notifications", label: "Alerts", icon: "list" },
   ],
@@ -109,8 +111,10 @@ export async function AppNavbar({ name, role, unread }: { name: string; role: Ro
   const links = NAV[role];
   const portal = PORTAL[role];
   const desktopLinks = links.filter((l) => l.icon !== "bell");
-  // A long nav (admin) only fits in the header from xl; below that it lives in the account menu.
-  const wide = desktopLinks.length > 6;
+  // A long nav (NGO, admin) only fits in the header from xl; below that it lives in the account menu.
+  const wide = desktopLinks.length > 4;
+  // From xl, up to five links fit on one line; keep their labels from wrapping (admin's eight still may).
+  const nowrap = wide && desktopLinks.length <= 5;
   const initials = name
     .split(/\s+/)
     .map((p) => p[0])
@@ -129,7 +133,7 @@ export async function AppNavbar({ name, role, unread }: { name: string; role: Ro
             className={`hidden items-center gap-1 rounded-full border border-white/10 bg-white/[0.04] p-1 ${wide ? "xl:flex" : "md:flex"}`}
           >
             {desktopLinks.map((l) => (
-              <NavLink key={l.href} href={l.href} exact={l.href === ROLE_HOME[role]}>
+              <NavLink key={l.href} href={l.href} exact={l.href === ROLE_HOME[role]} nowrap={nowrap}>
                 {t(l.label)}
               </NavLink>
             ))}
@@ -141,7 +145,7 @@ export async function AppNavbar({ name, role, unread }: { name: string; role: Ro
                 {!portal.ctaMobileOnly && (
                   <Link
                     href={portal.cta.href}
-                    className="hidden h-10 items-center gap-1.5 rounded-full bg-brand-600 px-5 text-sm font-semibold text-white shadow-glow hover:bg-brand-700 md:inline-flex"
+                    className="hidden h-10 shrink-0 items-center gap-1.5 rounded-full bg-brand-600 px-5 text-sm font-semibold whitespace-nowrap text-white shadow-glow hover:bg-brand-700 md:inline-flex"
                   >
                     <Icon name={portal.cta.icon} className="size-4" />
                     {t(portal.cta.label)}

@@ -1,0 +1,117 @@
+{
+  "generatedAt": "2026-11-20T04:08:35.810Z",
+  "routes": [
+    {
+      "path": "/api/admin/docs",
+      "methods": [
+        "PUT"
+      ]
+    },
+    {
+      "path": "/api/admin/export/[dataset]",
+      "methods": [
+        "GET"
+      ]
+    },
+    {
+      "path": "/api/assistant/guest",
+      "methods": [
+        "POST"
+      ]
+    },
+    {
+      "path": "/api/assistant",
+      "methods": [
+        "GET",
+        "POST",
+        "PATCH",
+        "DELETE"
+      ]
+    },
+    {
+      "path": "/api/auth/signout",
+      "methods": [
+        "GET"
+      ]
+    },
+    {
+      "path": "/api/cron/housekeeping",
+      "methods": [
+        "GET"
+      ]
+    },
+    {
+      "path": "/api/deliveries/[id]/location",
+      "methods": [
+        "GET",
+        "POST",
+        "DELETE"
+      ]
+    },
+    {
+      "path": "/api/docs",
+      "methods": [
+        "GET"
+      ]
+    },
+    {
+      "path": "/api/integrations/inbound",
+      "methods": [
+        "POST"
+      ]
+    },
+    {
+      "path": "/api/mcp",
+      "methods": [
+        "POST",
+        "GET",
+        "DELETE"
+      ]
+    },
+    {
+      "path": "/api/notifications/[id]/open",
+      "methods": [
+        "GET"
+      ]
+    }
+  ],
+  "features": [
+    "admin",
+    "ai",
+    "analytics",
+    "auth",
+    "bn",
+    "chat-orders",
+    "dispatch",
+    "docs",
+    "donations",
+    "integrations",
+    "location",
+    "matching",
+    "mcp",
+    "ngo",
+    "notifications",
+    "reports",
+    "requests",
+    "safety",
+    "volunteer"
+  ],
+  "stack": {
+    "@anthropic-ai/sdk": "^0.129.0",
+    "@electric-sql/pglite": "^0.5.8",
+    "@langchain/core": "^1.2.13",
+    "@langchain/langgraph": "^1.4.18",
+    "@modelcontextprotocol/sdk": "^1.32.2",
+    "bcryptjs": "^3.0.3",
+    "drizzle-orm": "^0.45.3",
+    "jose": "^6.2.12",
+    "leaflet": "^1.9.4",
+    "next": "16.3.6",
+    "pg": "^8.23.0",
+    "react": "19.2.8",
+    "react-dom": "19.2.8",
+    "server-only": "^0.0.1",
+    "tailwind-merge": "^3.7.0",
+    "zod": "^4.6.5"
+  }
+}

@@ -1,5 +1,6 @@
 import "server-only";
 
+import { syncChatOrders } from "@/lib/chat-orders/service";
 import { dispatchWaitingTasks, expireStaleOffers } from "@/lib/dispatch/service";
 import { expireOverdueDonations } from "@/lib/donations/service";
 import { flushOutbox } from "@/lib/notifications/service";
@@ -13,7 +14,8 @@ const state = globalThis as unknown as { __foodbridgeHousekeeping?: { last: numb
  * Platform-wide upkeep: expires donations past their best-before time (which closes their
  * requests, matches and volunteer tasks), matches available food to open NGO requests, moves
  * unanswered volunteer offers on, offers waiting pickup tasks to available volunteers, sends
- * one-time expiry warnings, and hands queued email/SMS/WhatsApp messages to their channels.
+ * one-time expiry warnings, hands queued email/SMS/WhatsApp messages to their channels, and
+ * copies new chat orders from the Supabase inbox.
  *
  * Runs at most once a minute per server process, triggered by any signed-in page load
  * (see app/(app)/layout.tsx). In production, also call GET /api/cron/housekeeping on a
@@ -32,6 +34,7 @@ export async function runHousekeeping({ force = false } = {}) {
       await dispatchWaitingTasks();
       await sendExpiryWarnings();
       await flushOutbox();
+      await syncChatOrders();
     } finally {
       s.running = undefined;
     }

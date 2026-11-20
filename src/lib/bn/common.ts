@@ -1,4 +1,5 @@
 export const COMMON: Record<string, string> = {
+  "Documentation": "ডকুমেন্টেশন",
   "Skip to content": "মূল অংশে যান",
   "FoodWasteZero initiative": "ফুডওয়েস্টজিরো উদ্যোগ",
   "Need help?": "সাহায্য দরকার?",
@@ -798,4 +799,22 @@ export const COMMON: Record<string, string> = {
   "What’s the pickup address or area? (e.g. House 12, Road 5, Mirpur 10, Dhaka)": "কোন ঠিকানা বা এলাকা থেকে নিতে হবে? (যেমন: বাসা ১২, রোড ৫, মিরপুর ১০, ঢাকা)",
   "Thank you so much! 🙏 Your donation form is ready. Tap the button below, log in or create a free donor account (it takes a minute), check the details and post it. A verified NGO nearby will confirm it and a volunteer will collect it from you.": "অনেক অনেক ধন্যবাদ! 🙏 আপনার দানের ফর্ম প্রস্তুত। নিচের বোতামে চাপুন, লগ ইন করুন বা বিনামূল্যে দাতা অ্যাকাউন্ট খুলুন (এক মিনিট লাগবে), তথ্যগুলো দেখে নিয়ে পোস্ট করুন। কাছের একটি যাচাই করা এনজিও তা নিশ্চিত করবে আর একজন স্বেচ্ছাসেবক আপনার কাছ থেকে খাবার নিয়ে যাবেন।",
   "FoodBridge connects restaurants, hotels, shops and households with NGOs and volunteers to rescue surplus food and deliver it to people in need.": "ফুডব্রিজ রেস্তোরাঁ, হোটেল, দোকান ও বাসাবাড়িকে এনজিও ও স্বেচ্ছাসেবকদের সঙ্গে যুক্ত করে, যাতে উদ্বৃত্ত খাবার উদ্ধার করে প্রয়োজনে থাকা মানুষের কাছে পৌঁছানো যায়।",
+  // Chat orders (Segment 23)
+  "New": "নতুন",
+  "Food offer": "খাবারের প্রস্তাব",
+  "Unnamed shop": "নামহীন দোকান",
+  "Unnamed NGO": "নামহীন এনজিও",
+  "Shop location": "দোকানের ঠিকানা",
+  "NGO location": "এনজিওর ঠিকানা",
+  "Pickup point": "সংগ্রহের স্থান",
+  "Pick up before": "এর আগে সংগ্রহ করুন",
+  "Food stays good for": "খাবার ভালো থাকবে",
+  "Open in Google Maps": "গুগল ম্যাপে খুলুন",
+  "Older message": "পুরোনো বার্তা",
+  "This message is more than a day old. Call before sending anyone.": "এই বার্তাটি এক দিনের বেশি পুরোনো। কাউকে পাঠানোর আগে ফোন করে নিন।",
+  "Choose a verified volunteer who is available right now.": "এখন পাওয়া যাচ্ছে এমন একজন যাচাই করা স্বেচ্ছাসেবক বেছে নিন।",
+  "This order was already taken or is no longer waiting.": "এই অর্ডারটি ইতিমধ্যে নেওয়া হয়েছে বা আর অপেক্ষায় নেই।",
+  "This volunteer already has this order.": "এই অর্ডারটি ইতিমধ্যে এই স্বেচ্ছাসেবকের কাছে আছে।",
+  "This food was already taken or withdrawn through chat.": "এই খাবারটি চ্যাটের মাধ্যমে ইতিমধ্যে নেওয়া বা প্রত্যাহার করা হয়েছে।",
+  "We couldn’t reach the chat inbox. Please try again.": "চ্যাট ইনবক্সে পৌঁছানো যায়নি। আবার চেষ্টা করুন।",
 };

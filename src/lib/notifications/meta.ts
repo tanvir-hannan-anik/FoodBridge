@@ -57,6 +57,8 @@ export const NOTIFICATION_CATEGORY: Record<NotificationType, NotificationCategor
   match_cancelled: "other",
   need_posted: "food_needed",
   need_response: "food_needed",
+  chat_order_assigned: "volunteer_assigned",
+  chat_order_update: "other",
 };
 
 /** Categories important enough to also send over outside channels (email, SMS, WhatsApp, Messenger). */
@@ -75,6 +77,9 @@ export const CHANNEL_LABEL: Record<NotifyChannel, string> = {
 export function notificationHref(role: Role, n: { donationId: string | null; needId: string | null; type: NotificationType }) {
   if (n.needId && role === "ngo") return `/ngo/requests/${n.needId}`;
   if (n.needId && role === "donor" && !n.donationId) return `/donor/needs#need-${n.needId}`;
+  if (n.type === "chat_order_assigned" || n.type === "chat_order_update") {
+    return role === "ngo" ? "/ngo/chat-orders?tab=mine" : role === "volunteer" ? "/volunteer/tasks#chat-orders" : null;
+  }
   if (!n.donationId) return n.type === "account_verified" ? `/${role}` : null;
   switch (role) {
     case "donor":

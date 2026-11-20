@@ -71,6 +71,14 @@ const STYLE: Record<NotificationType, { tone: string; icon: string }> = {
     tone: "bg-brand-100 text-brand-700",
     icon: "M21 12a8 8 0 0 1-11.6 7.1L4 20l1-4.6A8 8 0 1 1 21 12ZM8.5 12h.01M12 12h.01M15.5 12h.01",
   },
+  chat_order_assigned: {
+    tone: "bg-violet-50 text-violet-700",
+    icon: "M21 12a8 8 0 0 1-11.6 7.1L4 20l1-4.6A8 8 0 1 1 21 12ZM9 12l2 2 4-4",
+  },
+  chat_order_update: {
+    tone: "bg-brand-50 text-brand-700",
+    icon: "M21 12a8 8 0 0 1-11.6 7.1L4 20l1-4.6A8 8 0 1 1 21 12ZM8.5 12h.01M12 12h.01M15.5 12h.01",
+  },
   expiry_warning: {
     tone: "bg-accent-100 text-accent-700",
     icon: "M12 9v4m0 4h.01M10.3 3.9 1.8 18a2 2 0 0 0 1.7 3h17a2 2 0 0 0 1.7-3L13.7 3.9a2 2 0 0 0-3.4 0Z",

@@ -87,6 +87,9 @@ export const NOTIFICATION_TYPES = [
   // Donors answer NGO food requests (Segment 22)
   "need_posted",
   "need_response",
+  // Orders received over chat (n8n → Supabase, Segment 23)
+  "chat_order_assigned",
+  "chat_order_update",
 ] as const;
 
 /** Admin food-safety hold: FLAGGED = paused for review (not matchable), DISABLED = withdrawn as unsafe. */
@@ -478,6 +481,57 @@ export const channelLinks = pgTable(
   (t) => [uniqueIndex("channel_links_user_channel_idx").on(t.userId, t.channel), uniqueIndex("channel_links_external_idx").on(t.channel, t.externalId)],
 );
 
+/** Which Supabase table a chat order came from: a shop offering food, or an NGO asking for it. */
+export const CHAT_ORDER_SOURCES = ["donation", "request"] as const;
+export type ChatOrderSource = (typeof CHAT_ORDER_SOURCES)[number];
+
+/** NEW = waiting in the inbox; CLOSED = taken or withdrawn outside FoodBridge (the chat bot or Supabase). */
+export const CHAT_ORDER_STATUSES = ["NEW", "ASSIGNED", "PICKED_UP", "DELIVERED", "CLOSED"] as const;
+export type ChatOrderStatus = (typeof CHAT_ORDER_STATUSES)[number];
+
+/**
+ * A local copy of a message n8n stored in Supabase (Segment 23), plus who is handling it. The text
+ * fields are exactly what the sender wrote (free text, often Bangla). `pushPending` marks a status
+ * change not yet written back to Supabase; sync retries it.
+ */
+export const chatOrders = pgTable(
+  "chat_orders",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    source: text("source").$type<ChatOrderSource>().notNull(),
+    externalId: integer("external_id").notNull(),
+    /** Shop name (offers) or NGO name (requests). */
+    name: text("name"),
+    phone: text("phone"),
+    location: text("location"),
+    food: text("food"),
+    quantity: text("quantity"),
+    /** Offers only: how long the food stays good, as written. */
+    goodFor: text("good_for"),
+    /** Pickup point (offers) or delivery point (requests). */
+    place: text("place"),
+    /** "Pickup before" (offers) or "needed by" (requests), as written. */
+    timeText: text("time_text"),
+    sourceStatus: text("source_status"),
+    receivedAt: timestamp("received_at", { withTimezone: true }).notNull(),
+    status: text("status").$type<ChatOrderStatus>().notNull().default("NEW"),
+    ngoId: uuid("ngo_id").references(() => users.id, { onDelete: "set null" }),
+    volunteerId: uuid("volunteer_id").references(() => users.id, { onDelete: "set null" }),
+    assignedAt: timestamp("assigned_at", { withTimezone: true }),
+    pickedUpAt: timestamp("picked_up_at", { withTimezone: true }),
+    deliveredAt: timestamp("delivered_at", { withTimezone: true }),
+    pushPending: boolean("push_pending").notNull().default(false),
+    syncedAt: timestamp("synced_at", { withTimezone: true }).notNull().defaultNow(),
+    updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
+  },
+  (t) => [
+    uniqueIndex("chat_orders_source_idx").on(t.source, t.externalId),
+    index("chat_orders_status_idx").on(t.status, t.receivedAt),
+    index("chat_orders_ngo_idx").on(t.ngoId),
+    index("chat_orders_volunteer_idx").on(t.volunteerId),
+  ],
+);
+
 /** Admin actions (verify, suspend, edit, cancel…) for monitoring. Status changes live in donation_events. */
 export const activityLog = pgTable(
   "activity_log",
@@ -508,4 +562,12 @@ export type Notification = typeof notifications.$inferSelect;
 export type MatchEvent = typeof matchEvents.$inferSelect;
 export type TaskOffer = typeof taskOffers.$inferSelect;
 export type ChannelLink = typeof channelLinks.$inferSelect;
+export type ChatOrder = typeof chatOrders.$inferSelect;
 export type AiConversation = typeof aiConversations.$inferSelect;
+
+export const docsSettings = pgTable("docs_settings", {
+  id: integer("id").primaryKey(),
+  content: text("content").notNull(),
+  revision: integer("revision").notNull().default(1),
+  updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
+});
